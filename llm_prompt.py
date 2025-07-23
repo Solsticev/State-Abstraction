@@ -14,7 +14,7 @@ def compose_planning_prompt(rules):
 
 def compose_llm_agent_prompt(rules, model_description, current_goal, info, last_model_call=""):
 
-    LLM_AGENT_PROMPT = "You are playing an open world survival game. Below are some of the rules of the game.\n\n" + rules + "\n\nThe pre-trained RL models below are available:\n\n" + model_description + "\n\nYou can and only can use those models to achieve the following goal\n\nCuurent goal:" + current_goal + "Here is your observation:\n\n" + str(info['obs']) + "\n\n" + str(info['history']) + "\n\n Here is your achievements where 1 stand for what you have already reached. Make sure don't reach achievements repeatly unless nessesary.\n\n" + str(info['achievements']) + "\n\nYour last model call is: " + last_model_call + "\n\nYour answer should strictly follow the template below and NOTHING ELSE:\n\n{'choice':'call TODO1', 'reason': 'TODO2'}\n\n 'TODO' should be one of the models in `model_description` and TODO2 is your explanation. Your should list the rules your used in your explanation"
+    LLM_AGENT_PROMPT = "You are playing an open world survival game. Below are some of the rules of the game.\n\n" + rules + "\n\nThe pre-trained RL models below are available:\n\n" + model_description + "\n\nYou can and only can use those models to achieve the following goal\n\nCuurent goal:" + current_goal + "Here is your observation:\n\n" + str(info['obs']) + "\n\n" + str(info['history']) + "\n\n Here is your achievements where 1 stand for what you have already reached. Make sure don't reach achievements repeatly unless nessesary.\n\n" + str(info['achievements']) + "\n\nYour last model call is: " + last_model_call + "\n\nYour answer should strictly follow the template below and NOTHING ELSE:\n\n{'choice':'call TODO1', 'reason': 'TODO2'}\n\n 'TODO' should be one of the models in `model_description` and TODO2 is your explanation. You should list the rules you used in your explanation"
 
     return LLM_AGENT_PROMPT
 
@@ -134,3 +134,33 @@ Here is an example:
 if you think you can't modify the rule set in current step, please response with the original rule set. you should not generate anything else.
 
 """
+
+def compose_submodel_prompt(rules, current_goal):
+
+    SUB_MODEL_PROPOSE_PROMPT = """
+You are playing an open-world survival game and are given a set of game rules.
+
+To progress more effectively in the game, you need to define a series of **subtasks** according to the given rules and the given current_goal. These subtasks will later be used to train a reinforcement learning model. Each subtask must correspond to an item from the following set:
+
+{"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood\_pickaxe", "stone\_pickaxe", "iron\_pickaxe", "wood\_sword", "iron\_sword", "stone\_sword"}
+
+Your response must strictly follow the format:
+
+\[("Task1", requirement\_list1), ..., ("TaskN", requirement\_listN)]
+
+{
+    "model1": {"name": "<ITEM_NAME>", "description": "<YOUR DESCRIPTION>", "requirement": [["<ITEM_NAME1>", <ITEM1_NUMBER>], ..., ["<ITEM_NAMEN>", <ITEMN_NUMBER>]]},
+    ...
+}
+
+For example:
+
+{
+    "model1": {"name": "wood_pickaxe","description": "craft a wood pickaxe", "requirement": []},
+    "model2": {"name": "stone", "description": "collect a stone", "requirement": [["wood_pickaxe", 1]]}
+}
+
+Do **not** include any additional text outside of the specified format.
+
+"""
+    return SUB_MODEL_PROPOSE_PROMPT + "Here are the rules of the game: \n" + rules + "\n\nHere is the current goal: " + current_goal  

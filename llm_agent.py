@@ -13,6 +13,11 @@ import llm_utils
 import numpy as np
 from tqdm import tqdm
 from model import CustomACPolicy
+import json
+
+
+ITEM_TABLE = ["sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword"]
+OBJ_TABLE = ["furnace", "table"]
 
 def show(fig, image_display, obs):
 
@@ -28,37 +33,30 @@ def get_item_number(info, item):
 
     return info["inventory"][item]
 
-def create_model_description(available_models):
+def create_model_description(available_models, submodels):
 
     description = {}
     for model in available_models:
-        if model == "model1":
-            description["model1"] = "craft a wood pickaxe"
-        if model == "model2":
-            description["model2"] = "collect a stone"
-        if model == "model3":
-            description["model3"] = "crafter a stone pickaxe"
-        if model == "model6":
-            description["model6"] = "collect a coal"
-        if model == "model7":
-            description["model7"] = "place a furnace"
-        if model == "model9":
-            description["model9"] = "collect an iron"
+        if model == "model0":
+            continue
+        description[model] = submodels[model]["description"]
 
     return str(description)
 
-def available_models(info):
+def available_models(info, submodels):
 
-    available_models = ["model1"]
-    if get_item_number(info, "wood_pickaxe") >= 1:
-        available_models.append("model2")
-        available_models.append("model6")
-        if get_item_number(info, "stone") >= 1:
-            available_models.append("model3")
-            if get_item_number(info, "stone") >= 4 and get_item_number(info, "coal") >= 1 and info["achievements"]["place_furnace"] == 0:
-                available_models.append("model7")
-        if get_item_number(info, "stone_pickaxe") >= 1:
-            available_models.append("model9")
+    available_models = ["model0"]
+    
+    for model_name, submodel in submodels.items():
+        if submodel["requirement"] == []:
+            available_models.append(model_name)
+        else:
+            flag = True
+            for requirement in submodel["requirement"]:
+                if get_item_number(info, requirement[0]) < requirement[1]:
+                    flag = False     
+            if flag:
+                available_models.append(model_name)
     return available_models
 
 
@@ -68,14 +66,15 @@ def choose_model(goal, info, last_model_call, model_list, rules, model_descripti
 
     print(llm_response)
 
-    model = model1
+    model = base_model
+
     for key in model_list.keys():
         if "call " + str(key) in llm_response:
             model = model_list[key]
             print("calling " + key)
             return model, key
 
-    return model, "model1"
+    return model, "model0"
 
 def face_at(obs):
 
@@ -85,28 +84,30 @@ def face_at(obs):
         pass
     return ""
 
-def is_finished(info, last_info):
+def is_finished(info, last_info, submodels):
 
-    return info["inventory"]["iron"] > last_info["inventory"]["iron"] or info["inventory"]["wood_sword"] > last_info["inventory"]["wood_sword"] or info["inventory"]["wood_pickaxe"] > last_info["inventory"]["wood_pickaxe"] or info["inventory"]["stone"] > last_info["inventory"]["stone"] or info["inventory"]["stone_pickaxe"] > last_info["inventory"]["stone_pickaxe"] or info["inventory"]["coal"] > last_info["inventory"]["coal"] or (face_at(info["obs"]) == "furnace" and info["achievements"]["place_furnace"] == 0)
+    for item in submodels.values():
+        if item["name"] in ITEM_TABLE:
+            if info["inventory"][item["name"]] > last_info["inventory"][item["name"]]:
+                return True
+        elif item["name"] in OBJ_TABLE:
+            if face_at(info["obs"]) == item["name"] and info["achievements"]["place_"+item["name"]] == 0:
+                return True
+        else:
+            assert(False)
+    
+    return False
 
 def is_current_goal_achieved(goal, info, last_info):
 
-    if "wood_sword" in goal:
-        return get_item_number(info, "wood_sword") > get_item_number(last_info, "wood_sword")
-    elif "wood_pickaxe" in goal:
-        return get_item_number(info, "wood_pickaxe") > get_item_number(last_info, "wood_pickaxe")
-    elif "stone_pickaxe" in goal:
-        return get_item_number(info, "stone_pickaxe") > get_item_number(last_info, "stone_pickaxe")
-    elif "stone" in goal:
-        return get_item_number(info, "stone") > get_item_number(last_info, "stone")
-    elif "coal" in goal:
-        return get_item_number(info, "coal") > get_item_number(last_info, "coal")
-    elif "furnace" in goal:
-        return face_at(info["obs"]) == "furnace"
-    elif "iron" in goal:
-        return get_item_number(info, "iron") > get_item_number(last_info, "iron")
-    print("invalid goal!\n")
-    return True
+    if goal in ITEM_TABLE:
+        return get_item_number(info, goal) > get_item_number(last_info, goal)
+    elif goal in OBJ_TABLE:
+        return face_at(info["obs"]) == goal
+    
+    print("invalid goal!")
+    assert(False)
+
 
 def not_moved(prev_locations):
     
@@ -116,7 +117,7 @@ def not_moved(prev_locations):
     return True
 
 
-def test(env, model_list, num_episodes, rules, model_description, goal_list, stack_size=1, mode="usual", last_model_call="", render=True):
+def test(env, model_list, num_episodes, rules, model_description, goal_list, submodels, stack_size=1, mode="usual", last_model_call="", render=True):
 
     if goal_list == []:
         print("Please make sure there is at least one goal in goal_list")
@@ -181,7 +182,7 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sta
 
             if index >= num_goals:
 
-                model = model8 
+                model = base_model
 
             else:
 
@@ -192,10 +193,10 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sta
 
                 elif mode == "lazy":
 
-                    if is_finished(info, last_info):
+                    if is_finished(info, last_info, submodels):
 
-                        model_description = create_model_description(available_models(info))
-                        print(model_description)
+                        model_description = create_model_description(available_models(info, submodels), submodels)
+                        # print(model_description)
 
                         model, model_name = choose_model(goal_list[index], info, last_model_call, model_list, rules, model_description)
                         last_model_call = model_name
@@ -236,49 +237,27 @@ if __name__ == "__main__":
         )
     env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=["init_num"])
 
+    with open ("submodels.json", 'r') as f:
+        submodels = json.load(f)
 
-    model_description = '''{
-"model1": {"description": "craft a wood pickaxe", "requirement": "None"},
-"model2": {"description": "collect a stone", "requirement": "1 wood pickaxe"},
-"model3": {"description": "craft a stone pickaxe", "requirement": "1 stone and 1 wood_pickaxe"},
-"model6": {"description": "collect a coal", "requirement": "1 wood_pickaxe"}
-"model7": {"description": "place a furnace", "requirement": "1 stone_pickaxe and 1 wood_pickaxe and 1 coal and 4 stones"}
-}
-    '''
+    model_description = str(submodels)
     rules = open("rules.txt", 'r').read()
 
+    model_list = {} 
+    base_model = PPO.load(os.path.join("RL_models", "original_agent"))
+    model_list["model0"] = base_model
+    for model_name, submodel in submodels.items():
+        model = PPO.load(os.path.join("RL_models", submodel["name"]))
+        model_list[model_name] = model
+    # print(model_list)
 
-    model0 = PPO.load(os.path.join("RL_models", "original_agent"))
-    model1 = PPO.load(os.path.join("RL_models", "wood_pickaxe"))
-    model2 = PPO.load(os.path.join("RL_models", "stone"))
-    model3 = PPO.load(os.path.join("RL_models", "stone_pickaxe"))
-    # model4 = PPO.load("water_model")
-    # model5 = PPO.load("navigation_coal")
-    model6 = PPO.load(os.path.join("RL_models", "coal"))
-    model7 = PPO.load(os.path.join("RL_models", "furnace"))
-    model8 = PPO.load(os.path.join("RL_models", "original_agent"))
-    model9 = PPO.load(os.path.join("RL_models", "iron"))
+test_episodes = config["test_episodes"]
+render = config["render"]
+goal_list = config["goal_list"]
+mode = config["mode"] 
+stack_size = config["stack_size"]
 
-    model_list = {}
-    model_list = {"model1": model1,
-                  "model2": model2,
-                  "model3": model3,
-                  # "model4": model4,
-                  # "model5": model5,
-                  "model6": model6,
-                  "model7": model7,
-                  "model8": model8,
-                  "model9": model9,
-                  "model0": model8
-                 }
+total_rewards = test(env, model_list, test_episodes, rules=rules, submodels=submodels, model_description=model_description, goal_list=goal_list, render=render, last_model_call="", mode=mode, stack_size=stack_size)
 
-    test_episodes = config["test_episodes"]
-    render = config["render"]
-    goal_list = config["goal_list"]
-    mode = config["mode"] 
-    stack_size = config["stack_size"]
-
-    total_rewards = test(env, model_list, test_episodes, rules=rules, model_description=model_description, goal_list=goal_list, render=render, last_model_call="", mode=mode, stack_size=stack_size)
-
-    average_reward = sum(total_rewards) / test_episodes
-    print(f"Average reward over {test_episodes} episodes: {average_reward}")
+average_reward = sum(total_rewards) / test_episodes
+print(f"Average reward over {test_episodes} episodes: {average_reward}")

@@ -68,7 +68,7 @@ def main():
 
   # env = env_wrapper.FurnaceWrapper(env)
   env = env_wrapper.LLMWrapper(env, model="deepseek-chat")
-  env = env_wrapper.InitWrapper(env, init_items=["stone_pickaxe"], init_num=[1], init_center=6)
+  # env = env_wrapper.InitWrapper(env, init_items=["stone_pickaxe"], init_num=[1], init_center=6)
   # env = env_wrapper.NavigationWrapper(env, obj_index=9)
   env.reset()
   achievements = set()
