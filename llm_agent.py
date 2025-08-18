@@ -92,7 +92,7 @@ def is_finished(info, last_info, submodels):
             if face_at(info["obs"]) == item["name"] and info["achievements"]["place_"+item["name"]] == 0:
                 return True
         else:
-            assert(False)
+            assert False
     
     return False
 
@@ -104,7 +104,7 @@ def is_current_goal_achieved(goal, info, last_info):
         return face_at(info["obs"]) == goal
     
     print("invalid goal!")
-    assert(False)
+    assert False
 
 
 def not_moved(prev_locations):

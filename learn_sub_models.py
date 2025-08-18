@@ -1,18 +1,15 @@
-import planning
 import gym
-from model import CustomResNet, CustomACPolicy, CustomPPO, TQDMProgressBar
+from model import CustomResNet, CustomACPolicy, CustomPPO
 import torch.nn as nn
 import torch
+import json
 import crafter
 import env_wrapper
 import os
-import test
 from stable_baselines3 import PPO
 
-OBJECTS_TABLE = ["health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword"]
 
-
-def train_model(env, save_path, total_timesteps=1000000):
+def train_model(env, save_path, config, total_timesteps=1000000):
 
     policy_kwargs = {
         "features_extractor_class": CustomResNet,
@@ -43,54 +40,61 @@ def train_model(env, save_path, total_timesteps=1000000):
 
     total_timesteps = total_timesteps
 
-    model.learn(total_timesteps=total_timesteps, callback=TQDMProgressBar(total_timesteps=total_timesteps))
+    model.learn(total_timesteps=total_timesteps, progress_bar=True)
 
-    model.save(save_path)
+    if config["save_model"]:
+        model.save(save_path)
+        print(f"model successfully saved at {save_path}")
 
     env.close()
 
-def build_reward_wrapper(wrapper_name):
 
-    locals_dict = {}
-    exec("env1 = {}(env)".format(wrapper_name), globals(), locals_dict)
-    return locals_dict['env1'] 
-
-def build_init_wrapper(env, init_items, init_num):
-
-    env = env_wrapper.InitWrapper(env, init_items, init_nume)
-    return env
+def import_reward_wrappers(wrapper_path="submodel_wrappers.py"):
+    wrappers = __import__(wrapper_path)
+    return wrappers
 
 
-# rules = open("rules_mine_stones.txt", 'r').read()
-tasks_list = ["craft an iron pickaxe"]
-# (tasks_list, command_list) = planning.plan(tasks_list=tasks_list, num_step=3, rules=rules)
-object_list = ["wood", "wood_pickaxe", "stone", "stone_pickaxe", "iron"]
-
-for i, object in enumerate(object_list):
-
-    wrapper_name = "wrapper_" + object
-    try:
-        exec(planning.define_wrapper(object))
-    except Exception as e:
-        print("{} is not defined".format(wrapper_name))
-
-    env = gym.make("MyCrafter-v0")
-    env = build_init_wrapper(env, init_items=object_list[:i], init_num=[1 for _ in range(i)])
-    env = build_reward_wrapper(wrapper_name)
-
-    save_path = os.path.join("RL_models", object)
-
-    train_model(env, save_path=save_path, total_timesteps=1000000)
-
-    model = PPO.load(save_path)
-
-    test_episodes = 1
-    render = True
-
-    total_rewards = test.test(env, model, test_episodes, render=render)
-
-    average_reward = sum(total_rewards) / test_episodes
-    print(f"Average reward over {test_episodes} episodes: {average_reward}")
+if __name__ == "__main__":
 
 
+    config = {"wrapper_path": "submodel_wrappers", 
+            "model_info_path": "./submodels.json",
+            "save_model": True,
+            "model_save_path": "RL_models1",
+            "total_timesteps": 100}
 
+    with open(config["model_info_path"]) as f:
+        model_info = json.load(f)
+
+    wrappers = import_reward_wrappers(config["wrapper_path"])
+
+    for i, model_dict in enumerate(model_info.values()):
+
+        name = model_dict["name"]
+
+        print(f"learning sub model: {name} ({i + 1} / {len(model_info) + 1})...\n")
+
+        wrapper_name = name + "Wrapper"
+        requirements = model_dict["requirement"]
+
+        env = gym.make("MyCrafter-v0")
+
+        try:
+            wrapper = getattr(wrappers, wrapper_name)
+            env = wrapper(env)
+        except Exception as e:
+            print("ERROR! {} is not defined".format(wrapper_name))
+            assert False
+
+        init_items = []
+        init_num = []
+        if requirements != []:
+            for r in requirements:
+                init_items.append(r[0])
+                init_num.append(r[1])
+
+        env = env_wrapper.InitWrapper(env, init_items, init_num)
+
+        save_path = os.path.join(config["model_save_path"], model_dict["name"])
+
+        train_model(env, config=config, save_path=save_path, total_timesteps=config["total_timesteps"])

@@ -21,7 +21,7 @@ class {}Wrapper(gym.Wrapper):
         obs, reward, done, info = self.env.step(action)
 
         player_pos = info["player_pos"]
-        if np.array(player_pos, self.prev_pos):
+        if np.array_equal(player_pos, self.prev_pos):
             reward -= 0.03
 
         self.prev_pos = player_pos
@@ -30,10 +30,10 @@ class {}Wrapper(gym.Wrapper):
             if num_item > self.prev_count:
                 reward += 1000
                 # done = True
+                self.prev_count = num_item
         except KeyError as e:
             if face_at(info["obs"]) == "{}":
                 reward += 1000
-        self.prev_count = num_item
 
         return obs, reward, done, info
 
@@ -88,8 +88,8 @@ if __name__ == "__main__":
     config = {"rules_path": "rules.txt",
               "tasks_list": ["collect an iron"],
               "planning_steps": 3,
-              "save_wrappers": False,
-              "save_plan": False,
+              "save_wrappers": True,
+              "save_plan": True,
               "save_wrappers_path": "submodel_wrappers.py",
               "save_plan_path": "plan.txt"
               }
