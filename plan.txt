@@ -1,0 +1,1 @@
+['craft a wood pickaxe', 'collect_stone until have at least 1 stone', 'collect_wood until have at least 1 wood', 'craft_stone_pickaxe', 'collect a coal', place a furnace', 'mine 1 iron']

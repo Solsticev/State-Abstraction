@@ -1,6 +1,6 @@
 def compose_planning_prompt(rules):
 
-    PLANNING_PROMPT = "You are playing an open world survival game. Below are some of the rules of the game.\n" + rules + "\nInorder to achieve the current goal, you need to propose a TODO list. The size of the TODO list should be strictly less then 6. Your response should be a python list. For example:\n "
+    PLANNING_PROMPT = "You are playing an open world survival game. Below are some of the rules of the game.\n" + rules + "\nIn order to achieve the current goal, you need to propose a TODO list. The size of the TODO list should be strictly less then 6. Your response should be a python list. For example:\n "
 
     PLANNING_PROMPT += """
 
@@ -85,7 +85,7 @@ Your Output:
     return LLM_ATTENTION_PROMPT
 
 
-TRANS_PROMPT = """You are playing an open world survival game. You will be provided with a current goal decribed in natural language. You need to translate that goal into a python condition.
+TRANS_PROMPT = """You are playing an open world survival game. You will be provided with a current goal described in natural language. You need to translate that goal into a python condition.
 
 Below is the template of the python condition you should response:
 
@@ -135,12 +135,12 @@ if you think you can't modify the rule set in current step, please response with
 
 """
 
-def compose_submodel_prompt(rules, current_goal):
+def compose_submodel_prompt(rules, plan, current_goal):
 
     SUB_MODEL_PROPOSE_PROMPT = """
 You are playing an open-world survival game and are given a set of game rules.
 
-To progress more effectively in the game, you need to define a series of **subtasks** according to the given rules and the given current_goal. These subtasks will later be used to train a reinforcement learning model. Each subtask must correspond to an item from the following set:
+To progress more effectively in the game, you need to define a series of **submodels** according to the given rules,the given plan and the given current_goal. These subtasks will later be used to train a reinforcement learning model. Each subtask must correspond to an item from the following set:
 
 {"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood\_pickaxe", "stone\_pickaxe", "iron\_pickaxe", "wood\_sword", "iron\_sword", "stone\_sword"}
 
@@ -163,4 +163,4 @@ For example:
 Do **not** include any additional text outside of the specified format.
 
 """
-    return SUB_MODEL_PROPOSE_PROMPT + "Here are the rules of the game: \n" + rules + "\n\nHere is the current goal: " + current_goal  
+    return SUB_MODEL_PROPOSE_PROMPT + "Here are the rules of the game: \n" + rules + "\n\nHere is the plan\n" + plan + "\n\nHere is the current goal: " + current_goal  

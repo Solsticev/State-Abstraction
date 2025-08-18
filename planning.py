@@ -85,10 +85,21 @@ def plan_aux(tasks_list, command_list, current_step, num_step, rules):
 
 if __name__ == "__main__":
 
-    rules = open("rules.txt", 'r').read()
-    tasks_list = ["place a furnace"]
+    config = {"rules_path": "rules.txt",
+              "tasks_list": ["collect an iron"],
+              "planning_steps": 3,
+              "save_wrappers": False,
+              "save_plan": False,
+              "save_wrappers_path": "submodel_wrappers.py",
+              "save_plan_path": "plan.txt"
+              }
+
+    rules = open(config["rules_path"], 'r').read()
+    tasks_list = config["tasks_list"]
+    planning_steps = config["planning_steps"]
     
-    tasks_list, command_list = plan(tasks_list, 3, rules)
+    tasks_list, command_list = plan(tasks_list, planning_steps, rules)
+
     print(tasks_list)
     print(command_list)
 
@@ -105,11 +116,20 @@ def face_at(obs):
     return ""
 
     '''
-    with open("submodel_wrappers.py", 'w') as f:
-        f.write(lines)
 
-    print(command_list)
+    if config["save_plan"]:
 
-    for obj in command_list:
-        with open("submodel_wrappers.py", 'a') as f:
-            f.write(define_training_wrapper(obj))
+        with open(config["save_plan_path"], 'w') as f:
+            f.write(str(tasks_list))
+    
+    if config["save_wrappers"]:
+
+        with open(config["save_wrappers_path"], 'w') as f:
+            f.write(lines)
+
+        print("LLM generated plans: ")
+        print(command_list)
+
+        for obj in command_list:
+            with open(config["save_wrappers_path"], 'a') as f:
+                f.write(define_training_wrapper(obj))

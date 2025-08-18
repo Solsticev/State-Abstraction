@@ -94,20 +94,3 @@ for i, object in enumerate(object_list):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
