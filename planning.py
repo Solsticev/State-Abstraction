@@ -1,6 +1,7 @@
 import llm_prompt
 import llm_utils
 import ast
+import os
 
 wrapper_template = """
 class {}Wrapper(gym.Wrapper):
@@ -8,8 +9,10 @@ class {}Wrapper(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
         self.prev_count = 0
+        self.prev_pos = np.array([32, 32])
     
     def reset(self, **kwargs):
+        self.prev_pos = np.array([32, 32])
         self.prev_count = 0
         return self.env.reset()
 
@@ -17,110 +20,29 @@ class {}Wrapper(gym.Wrapper):
 
         obs, reward, done, info = self.env.step(action)
 
-        # reward = 0
+        player_pos = info["player_pos"]
+        if np.array(player_pos, self.prev_pos):
+            reward -= 0.03
 
-        num_item = info["inventory"]["{}"]
-        if num_item > self.prev_count:
-            reward += 1000
-            # done = True
+        self.prev_pos = player_pos
+        try:
+            num_item = info["inventory"]["{}"]
+            if num_item > self.prev_count:
+                reward += 1000
+                # done = True
+        except KeyError as e:
+            if face_at(info["obs"]) == "{}":
+                reward += 1000
         self.prev_count = num_item
 
         return obs, reward, done, info
+
 """
 
-navigation_wrapper_template = """
-class {}NavigationWrapper(gym.Wrapper):
-
-    def __init__(self, env, obj_index={}):
-        super().__init__(env)
-        self.target_obj = obj_index 
-
-    def step(self, action):
-
-        obs, reward, done, info = self.env.step(action)
-        # reward = 0
-        player_pos = info['player_pos']
-
-        left_index = max(0, player_pos[0] - 4)
-        right_index = min(64, player_pos[0] + 4)
-        up_index = max(0, player_pos[1] - 3)
-        down_index = min(64, player_pos[1] + 3)
-        
-        for i in range(left_index, right_index, 1):
-            for j in range(up_index, down_index, 1):
-                if (info['semantic'][i][j] == self.target_obj):
-                    reward = 1000
-                    done = True
-                    return obs, reward, done, info
-        
-        return obs, reward, done, info
-"""
-
-wrapper_with_navigation_template = """
-class {}WrapperWithNavigation(gym.Wrapper):
-
-    def __init__(self, env, navigation_model, obj_index={}):
-        super().__init__(env)
-        self.model = navigation_model
-        self.prev_count = 0
-        self.obj_index = obj_index
-
-    def reset(self, **kwargs):
-
-        self.prev_count = 0
-        
-        obs = self.env.reset(**kwargs)
-
-        valid = False
-
-        for _ in range(100):
-
-            if not valid:
-
-                action, _  = self.model.predict(obs, deterministic=True)
-                obs, _, _, info = self.env.step(action)
-
-                player_pos = info['player_pos']
-
-                left_index = max(0, player_pos[0] - 4)
-                right_index = min(64, player_pos[0] + 4)
-                up_index = max(0, player_pos[1] - 3)
-                down_index = min(64, player_pos[1] + 3)
-                
-                for i in range(left_index, right_index, 1):
-                    if not valid:
-                        for j in range(up_index, down_index, 1):
-                            if (info['semantic'][i][j] == self.obj_index):
-                                valid = True
-                                break
-        return obs
-    
-    def step(self, action):
-
-        obs, reward, done, info = self.env.step(action)
-
-        # reward = 0
-        num_item = info["inventory"][obj_name]
-
-        if num_item > self.prev_count
-            reward += 1000
-            done = True
-        self.prev_count = num_item
-
-        return obs, reward, done, info
-"""
 
 def define_training_wrapper(obj_name):
     
-    return wrapper_template.format(obj_name, obj_name)
-
-def define_navigation_wrapper(obj_name, obj_index):
-
-    return navigation_wrapper_template.format(obj_name, obj_index)
-
-def define_training_wrapper_with_navigation(obj_name, obj_index):
-
-    return wrapper_with_navigation_template.format(obj_name, obj_index)
+    return wrapper_template.format(obj_name, obj_name, obj_name)
 
 
 def plan(tasks_list, num_step, rules):
@@ -165,8 +87,29 @@ if __name__ == "__main__":
 
     rules = open("rules.txt", 'r').read()
     tasks_list = ["place a furnace"]
-    (tasks_list, object_list) = plan(tasks_list=tasks_list, num_step=3, rules=rules)
+    
+    tasks_list, command_list = plan(tasks_list, 3, rules)
+    print(tasks_list)
+    print(command_list)
 
-    for object in object_list:
 
-        print(define_wrapper(object))
+    lines = '''import gym
+import numpy as np
+
+def face_at(obs):
+
+    try:
+        return obs.split()[obs.split().index("face") + 1]
+    except ValueError as _:
+        pass
+    return ""
+
+    '''
+    with open("submodel_wrappers.py", 'w') as f:
+        f.write(lines)
+
+    print(command_list)
+
+    for obj in command_list:
+        with open("submodel_wrappers.py", 'a') as f:
+            f.write(define_training_wrapper(obj))

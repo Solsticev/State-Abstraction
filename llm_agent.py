@@ -66,15 +66,13 @@ def choose_model(goal, info, last_model_call, model_list, rules, model_descripti
 
     print(llm_response)
 
-    model = base_model
-
     for key in model_list.keys():
         if "call " + str(key) in llm_response:
             model = model_list[key]
             print("calling " + key)
             return model, key
 
-    return model, "model0"
+    return base_model, "model0"
 
 def face_at(obs):
 
