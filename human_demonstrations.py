@@ -15,6 +15,10 @@ import gym
 from stable_baselines3 import PPO
 
 
+config = {"save": False, 
+          "save_path": "./rules.txt"}
+
+
 def main():
   boolean = lambda x: bool(['False', 'True'].index(x))
   parser = argparse.ArgumentParser()
@@ -67,7 +71,7 @@ def main():
   env = gym.make("MyCrafter-v0") 
 
   # env = env_wrapper.FurnaceWrapper(env)
-  env = env_wrapper.LLMWrapper(env, model="deepseek-chat")
+  env = env_wrapper.LLMWrapper(env, model="deepseek-chat", save=config["save"], save_path=config["save_path"])
   # env = env_wrapper.InitWrapper(env, init_items=["stone_pickaxe"], init_num=[1], init_center=6)
   # env = env_wrapper.NavigationWrapper(env, obj_index=9)
   env.reset()

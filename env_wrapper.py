@@ -123,20 +123,26 @@ class AttentionMapWrapper(gym.Wrapper):
 
 class LLMWrapper(gym.Wrapper):
 
-    def __init__(self, env, model="qwen2.5:7b"):
+    def __init__(self, env, model="deepseek-chat", save=False, save_path="./rules.txt"):
         super().__init__(env)
         self.rule_set = "{}"
         self.cur_step = 0
         self.model = model
+        self.save = save
+        self.save_path = save_path
 
     def step(self, action):
 
         obs, reward, done, info = self.env.step(action)
 
-        if reward >= 1 or reward <= -1:
+        #if reward >= 1 or reward <= -1:
+        if True:
             user_prompt = llm_utils.compose_user_prompt(info["obs"] + info['history'], self.rule_set)
             self.rule_set = llm_utils.llm_chat(user_prompt, model=self.model)
             print(self.rule_set)
+            if self.save:
+                with open(self.save_path, 'w') as f:
+                    f.write(self.rule_set)
         
         self.cur_step += 1
 
