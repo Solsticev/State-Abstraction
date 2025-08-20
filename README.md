@@ -22,24 +22,27 @@
 
 5. `planning.py`
 
-LLM根据规则做出任务规划，生成三个文件，一个是reward wrapper用于后续对子强化学习训练,和分别用自然语言表示和环境中物体表示的规划列表，用于后续LLM做规划
+LLM根据规则做出任务规划，生成两个文件，分别是用自然语言表示和环境中物体表示的规划列表，用于后续提出子任务
 
 6. `propose_subRLs.py`
 
-根据上一步的规划和总结到的规则生成一个sub RL models的说明性json字典
+根据上一步的规划和总结到的规则生成一个sub RL models的说明性json字典以及一个reward wrapper文件，用于训练模型
 
-6. `llm_agent.py`
+7. `train_sub_models.py`
 
-我们目前的方法，整合所有好训练的子模型，让LLM根据规则调用模型，效果比baseline要好很多
+训练sub RL models
 
+8. `llm_agent.py`
 
-7. `train_sub_models`
+整合所有好训练的子模型，让LLM根据规则调用模型，效果比baseline要好很多
 
-根据规划出的一系列子任务进行训练
+9. `temp_result`
 
-8. `env_wrapper.py`
+这个路径下包含所有LLM生成的中间结果
 
-定义了一些环境wrapper，主要用于reward shaping和自定义环境，比较常用的：
+10. `utils`
+
+这个路径下包含了一些实用工具，包括大模型的封装以及一些实用的环境wrapper，其中
 
 * `InitWrapper`: 用于对装备栏初始化，如：
 
@@ -48,13 +51,47 @@ env = InitWrapper(env, ["stone_pickaxe", "wood"], [1, 2])
 ```
 表示初始环境装备栏中加入一个木头镐和两个木头，可以在`train.py`以及`test.py`的config字典中进行设置
 
-9. `info.txt`
+11. `example_info.txt`
 
 环境step后返回的内存信息的一个示例
 
-10. 其它
+12. `crafter`
 
-包含一些环境以及测试的代码，以及不太成功的尝试，可暂时忽略
+包含crafter环境的实现
+
+13. `RL_models`
+
+包含训练好的子强化学习模型
+
+14. 其它
+
+包含最终模型测试结果以及指标分析脚本
+
+
+### 使用方法
+
+由于LLM输出的内容不稳定，直接写个脚本运行可能导致文件解析错误，因此现阶段分步实现了各个模块，以方便调试。后续会针对LLM特殊的输出做处理。
+
+1. 人类演示玩游戏，让LLM总结规则：
+```bash
+python human_demonstrations.py
+```
+2. 根据总结出的规则，做规划：
+```bash
+python planning.py
+```
+3. 根据规划提出子任务：
+```bash
+python propose_subRLs.py
+```
+4. 训练子任务：
+```bash
+python train_sub_models.py
+```
+5. LLM根据subRL、游戏规则、规划以及当前状态做规划
+```bash
+python llm_agent.py
+```
 
 ### 注意事项
 
