@@ -10,13 +10,17 @@ except ImportError:
   raise
 from PIL import Image
 
-import env_wrapper
+from utils import env_wrapper
 import gym
 from stable_baselines3 import PPO
+from utils import llm_prompt
+import os
 
 
-config = {"save": False, 
-          "save_path": "./rules.txt"}
+config = {
+            "save": True, 
+            "save_path": os.path.join("temp_result", "rules1.txt"),
+        }
 
 
 def main():
@@ -71,7 +75,7 @@ def main():
   env = gym.make("MyCrafter-v0") 
 
   # env = env_wrapper.FurnaceWrapper(env)
-  env = env_wrapper.LLMWrapper(env, model="deepseek-chat", save=config["save"], save_path=config["save_path"])
+  env = env_wrapper.RulesWrapper(env, system_prompt=llm_prompt.RULES_PROMPT, model="deepseek-chat", save=config["save"], save_path=config["save_path"])
   # env = env_wrapper.InitWrapper(env, init_items=["stone_pickaxe"], init_num=[1], init_center=6)
   # env = env_wrapper.NavigationWrapper(env, obj_index=9)
   env.reset()

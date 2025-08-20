@@ -4,14 +4,15 @@ from PIL import Image
 import gym
 from stable_baselines3 import PPO
 from crafter import crafter
-import env_wrapper
+from utils import env_wrapper
 import os
-import llm_prompt
-import llm_utils
+from utils import llm_prompt
+from utils import llm_utils
 import numpy as np
 from tqdm import tqdm
 from model import CustomACPolicy
 import json
+import ast
 
 
 ITEM_TABLE = ["sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword"]
@@ -142,8 +143,8 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sub
         episode_reward = 0
 
         frames = [obs] * stack_size 
-        model = model_list["model0"]
-        model_name = "model0"
+        model = model_list["model1"]
+        model_name = "model1"
         last_model_call = ""
         last_info = ""
         prev_locations = [np.array([0, 0])] * 5 + [np.array([1, 1])] * 5
@@ -217,9 +218,12 @@ if __name__ == "__main__":
         "init_items": [],
         "init_num": [],
         "render": False,
-        "goal_list": ["wood_pickaxe", "stone_pickaxe", "stone", "coal", "furnace", "iron"],
+        "goal_list_path": os.path.join("temp_result", "goal_list.txt"),
         "mode": "lazy",
-        "stack_size": 1
+        "stack_size": 1,
+        "submodels_path": "RL_models",
+        "model_info_dict_path": os.path.join("temp_result", "submodels.json"),
+        "rules_path": os.path.join("temp_result", "rules.txt"),
     }
 
     env = gym.make("MyCrafter-v0")
@@ -233,25 +237,30 @@ if __name__ == "__main__":
         )
     env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=["init_num"])
 
-    with open ("submodels.json", 'r') as f:
+    with open (config["model_info_dict_path"], 'r') as f:
         submodels = json.load(f)
 
     model_description = str(submodels)
-    rules = open("rules.txt", 'r').read()
+    rules = open(config["rules_path"], 'r').read()
 
     model_list = {} 
     base_model = PPO.load(os.path.join("RL_models", "original_agent"))
     model_list["model0"] = base_model
     for model_name, submodel in submodels.items():
-        model = PPO.load(os.path.join("RL_models", submodel["name"]))
+        model = PPO.load(os.path.join(config["submodels_path"], submodel["name"]))
         model_list[model_name] = model
     # print(model_list)
 
 test_episodes = config["test_episodes"]
 render = config["render"]
-goal_list = config["goal_list"]
 mode = config["mode"] 
 stack_size = config["stack_size"]
+
+goal_list_path = config["goal_list_path"]
+with open(goal_list_path) as f:
+    goal_list_string = f.read()
+goal_list = ast.literal_eval(goal_list_string) 
+
 
 total_rewards = test(env, model_list, test_episodes, rules=rules, submodels=submodels, model_description=model_description, goal_list=goal_list, render=render, last_model_call="", mode=mode, stack_size=stack_size)
 

@@ -10,7 +10,7 @@
 
 2. `train.py`
 
-主要包含训练脚本
+主要包含单个模型的训练脚本
 
 3. `test.py`
 
@@ -20,15 +20,20 @@
 
 人手动玩游戏，让LLM总结规则
 
-5. `llm_agent.py`
+5. `planning.py`
+
+LLM根据规则做出任务规划，生成三个文件，一个是reward wrapper用于后续对子强化学习训练,和分别用自然语言表示和环境中物体表示的规划列表，用于后续LLM做规划
+
+6. `propose_subRLs.py`
+
+根据上一步的规划和总结到的规则生成一个sub RL models的说明性json字典
+
+6. `llm_agent.py`
 
 我们目前的方法，整合所有好训练的子模型，让LLM根据规则调用模型，效果比baseline要好很多
 
-6. `planning.py`
 
-LLM根据规则做出任务规划，定义一系列子任务（尚不完善）
-
-7. `learn_sub_models`
+7. `train_sub_models`
 
 根据规划出的一系列子任务进行训练
 
