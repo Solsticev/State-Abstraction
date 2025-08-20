@@ -1,10 +1,8 @@
-from httpx import get
 import matplotlib.pyplot as plt
 import time
 from PIL import Image
 import gym
 from stable_baselines3 import PPO
-from torch import ge, inverse
 from crafter import crafter
 import env_wrapper
 import os
