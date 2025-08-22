@@ -6,11 +6,11 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 # import crafter
 from crafter import crafter
-import env_wrapper
+from utils import env_wrapper
 import os
 import numpy as np
 from tqdm import tqdm
-from llm_attention_map import parse_seen_objects, build_attn_map, convert_to_rgb_image_pil
+
 
 def test(env, model, num_episodes, stack_size=2, render=True):
 
@@ -66,18 +66,16 @@ def test(env, model, num_episodes, stack_size=2, render=True):
 if __name__ == "__main__":
 
     config = {
-        "generate_rule": False,
-        "test_episodes": 1,
+        "test_episodes": 100,
         "recorder": False,
         "recorder_res_path": "base_model_res",
         "init_items": ["wood_pickaxe"],
         "init_num": [1],
         "render": False,
         "stack_size": 1,
-        "model_name": "stone"
+        "model_path": "stone"
     }
 
-    generate_rule = config["generate_rule"]
 
     env = gym.make("MyCrafter-v0")
     if config["recorder"]:
@@ -88,12 +86,10 @@ if __name__ == "__main__":
             save_episode = False,
         )
     env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=config["init_num"])
-    # env = env_wrapper.WoodPickaxeWrapper(env)
+    env = env_wrapper.MineStoneWrapper(env)
 
-    if generate_rule:
-        env = env_wrapper.LLMWrapper(env, model=model)
 
-    model = PPO.load(os.path.join("RL_models", config["model_name"]))
+    model = PPO.load(config["model_path"])
     stack_size = config["stack_size"]
     test_episodes = config["test_episodes"]
     render = config["render"]
@@ -102,8 +98,3 @@ if __name__ == "__main__":
 
     average_reward = sum(total_rewards) / test_episodes
     print(f"Average reward over {test_episodes} episodes: {average_reward}")
-
-    if generate_rule:
-        # save rules
-        with open("rules.txt", "w") as f:
-            f.write(env.rule_set)

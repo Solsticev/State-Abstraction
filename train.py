@@ -1,6 +1,6 @@
 import gym
 import crafter
-import env_wrapper
+from utils import env_wrapper
 from model import CustomResNet, CustomACPolicy, CustomPPO, TQDMProgressBar
 import torch.nn as nn
 import torch
@@ -14,7 +14,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 if __name__ == "__main__":
 
     config = {
-        "total_timesteps": 1000000,
+        "total_timesteps": 3000000,
         "save_dir": "./stone",
         "init_items": ["wood_pickaxe"],
         "init_num": [1]
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     env = gym.make("MyCrafter-v0") 
 
-    env = env_wrapper.MineStoneWrapper(env)
+    env = env_wrapper.MineStoneWrapper2(env)
     env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=config["init_num"])
 
     policy_kwargs = {

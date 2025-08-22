@@ -71,50 +71,6 @@ class myFrameStack(gym.Wrapper):
         stacked_obs = np.concatenate(self.frames, axis=-1)
         return stacked_obs, reward, done, info
 
-class AttentionMapWrapper(gym.Wrapper):
-
-    def __init__(self, env, obj_list, stack_size=2):
-        super().__init__(env)
-        self.stack_size = stack_size
-        self.obj_list = obj_list
-        
-        original_shape = env.observation_space.shape  # (64, 64, 3)
-        new_shape = (original_shape[0], original_shape[1], original_shape[2]*stack_size)  # (64, 64, 3*stack_size)
-        self.observation_space = gym.spaces.Box(
-            low=env.observation_space.low.min(),
-            high=env.observation_space.high.max(),
-            shape=new_shape,
-            dtype=env.observation_space.dtype
-        )
-
-    def reset(self, **kwargs):
-        obs = self.env.reset()
-        white_img = np.full((64, 64, 3), 255, dtype=np.uint8)
-        return np.concatenate([obs, white_img], axis=-1)
-
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
-
-        objects_list, distances_list, directions_list = parse_seen_objects(info['obs'])
-        
-        indices = [i for i, obj in enumerate(objects_list) if obj in self.obj_list]
-
-        distances_list = [distances_list[i] for i in indices]
-        directions_list = [directions_list[i] for i in indices]
-
-        attn = build_attn_map(directions_list, distances_list)
-
-        attn = convert_to_rgb_image_pil(attn)
-            
-        obs_with_attn = np.concatenate([obs, attn], axis=-1)
-
-        # plt.imshow(np.hstack((obs, attn)))
-        # plt.axis('off')
-        # plt.pause(1)
-        # plt.close()
-
-        return obs_with_attn, reward, done, info
-
 
 class RulesWrapper(gym.Wrapper):
 
@@ -280,6 +236,49 @@ class MineStoneWrapper(gym.Wrapper):
         self.prev_stone = num_stone
 
         return obs, reward, done, info
+
+
+class MineStoneWrapper2(gym.Wrapper):
+
+    def __init__(self, env, decay_steps=1000000):
+        super().__init__(env)
+        self.prev_stone = 0
+        self.prev_pos = np.array([32, 32])
+        self.curren_step = 0
+        self.decay_steps = 1000000
+    
+    def reset(self, **kwargs):
+        self.prev_stone = 0
+        self.prev_pos = np.array([32, 32])
+        return self.env.reset()
+
+    def step(self, action):
+
+        self.curren_step += 1
+
+        obs, reward, done, info = self.env.step(action)
+
+        if self.curren_step < self.decay_steps:
+            decay_factor = 1.0 - (self.curren_step / self.decay_steps)
+        else:
+            decay_factor = 0.0
+
+        reward *= decay_factor
+
+        play_pos = info["player_pos"]
+        if np.array_equal(play_pos, self.prev_pos):
+            reward -= 0.03
+
+        self.prev_pos = play_pos
+
+        num_stone = info["inventory"]["stone"]
+        if num_stone > self.prev_stone:
+            reward += 1000
+            done = True
+        self.prev_stone = num_stone
+
+        return obs, reward, done, info
+
 
 class WoodWrapper(gym.Wrapper):
 
