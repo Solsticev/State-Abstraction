@@ -17,8 +17,8 @@ if __name__ == "__main__":
         "total_timesteps": 1000000,
         "save": True,
         "save_dir": "./stone",
-        "init_items": [],
-        "init_num": [],
+        "init_items": ["wood_pickaxe"],
+        "init_num": [1],
         "recorder": False,
         "recorder_res_path": "SubTask-stone",
     }
