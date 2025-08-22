@@ -81,7 +81,7 @@ if __name__ == "__main__":
     if config["recorder"]:
         env = crafter.Recorder(
             env, config["recorder_res_path"],
-            save_stats = False,
+            save_stats = True,
             save_video = False,
             save_episode = False,
         )
