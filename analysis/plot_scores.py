@@ -50,17 +50,19 @@ def plot_scores(inpaths, outpath, legend, colors, budget=1e4, ylim=None):
 inpaths = [
     'scores/crafter_reward-base.json',
     'scores/crafter_reward-our_method.json',
+    'scores/crafter_reward-LLM_only.json',
 ]
 legend = {
     'base': 'Base',
-    'our_method': 'Our Method'
+    'our_method': 'Our Method',
+    'LLM_only': "LLM Only",
 }
 colors = [
     '#cccccc',
     '#377eb8', '#5fc35d', '#984ea3',
     '#bf3217', '#de9f42', '#6a554d',
 ]
-plot_scores(inpaths, 'plots/our_method.pdf', legend, colors, ylim=20)
+plot_scores(inpaths, 'plots/scores.pdf', legend, colors, ylim=20)
 
 # inpaths = [
 #     'scores/crafter_reward-dreamerv2.json',

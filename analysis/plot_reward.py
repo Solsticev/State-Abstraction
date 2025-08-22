@@ -54,13 +54,24 @@ def plot_reward(inpaths, outpath, legend, colors, cols=4, budget=1e6):
   print(f'Saved {outpath}')
 
 
+# inpaths = [
+#     'scores/crafter_reward-base.json',
+#     'scores/crafter_reward-our_method.json',
+#     'scores/crafter_reward-LLM_only.json',
+# ]
+# legend = {
+#     'base': 'Base',
+#     'our_method': 'Our Method',
+#     'LLM_only': 'LLM Only',
+# }
+
+config = {"save_path": "plots/example_reward_curve.pdf"}
+
 inpaths = [
-    'scores/crafter_reward-base.json',
-    'scores/crafter_reward-our_method.json',
+    'scores/crafter_reward-subtask_wood.json',
 ]
 legend = {
-    'base': 'Base',
-    'our_method': 'Our Method',
+    'subtask_wood': 'subtask_wood'
 }
 colors = ['#377eb8', '#4daf4a', '#984ea3', '#6a554d']
-plot_reward(inpaths, 'plots/reward.pdf', legend, colors, budget=100000)
+plot_reward(inpaths, config["save_path"], legend, colors, budget=100000)

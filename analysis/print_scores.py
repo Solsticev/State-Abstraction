@@ -28,10 +28,12 @@ def print_scores(inpaths, legend, budget=1e6, sort=False):
 
 inpaths = [
     'scores/crafter_reward-base.json',
-    'scores/crafter_reward-our_method.json'
+    'scores/crafter_reward-our_method.json',
+    'scores/crafter_reward-LLM_only.json',
 ]
 legend = {
     'base': 'Base',
     'our_method': "Our Method",
+    'LLM_only': 'LLM Only',
 }
 print_scores(inpaths, legend)

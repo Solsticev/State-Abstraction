@@ -54,13 +54,14 @@ def load_stats(filename, budget):
     steps += episode['length']
     if steps > budget:
       break
+    env_reward = episode["reward"]
     lengths.append(episode['length'])
     for key, value in episode.items():
       if key.startswith('achievement_'):
         achievements[key].append(value)
     unlocks = int(np.sum([(v[-1] >= 1) for v in achievements.values()]))
     health = -0.9
-    rewards.append(unlocks + health)
+    rewards.append(unlocks + health + env_reward)
   return rewards, lengths, achievements
 
 
@@ -81,26 +82,10 @@ def print_summary(runs, budget, verbose):
       print(f'{name:<20}  {np.mean(percent):6.2f}%')
 
 
-read_stats(
-    '../our_method_res/',
-    'scores', 'crafter_reward', 'our_method', budget=70000)
+config = {"recorder_path": "../LLM_only_res/",
+          "save_name": "LLM_only"}
 
-# read_stats(
-#     'logdir/crafter_reward-ppo',
-#     'scores', 'crafter_reward', 'ppo')
-#
-# read_stats(
-#     'logdir/crafter_reward-rainbow',
-#     'scores', 'crafter_reward', 'rainbow')
-#
-# read_stats(
-#     'logdir/crafter_noreward-unsup_plan2explore',
-#     'scores', 'crafter_noreward', 'unsup_plan2explore')
-#
-# read_stats(
-#     'logdir/crafter_noreward-unsup_rnd',
-#     'scores', 'crafter_noreward', 'unsup_rnd')
-#
-# read_stats(
-#     'logdir/crafter_noreward-random',
-#     'scores', 'crafter_noreward', 'random')
+
+read_stats(
+    config["recorder_path"],
+    'scores', 'crafter_reward', config["save_name"], budget=100000)
