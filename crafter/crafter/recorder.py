@@ -53,7 +53,9 @@ class StatsRecorder:
   def step(self, action):
     obs, reward, done, info = self._env.step(action)
     self._length += 1
-    self._reward += info['reward']
+    # self._reward += info['reward']
+    self._reward += reward
+    print(self._reward)
     if done:
       self._stats = {'length': self._length, 'reward': round(self._reward, 1)}
       for key, value in info['achievements'].items():
