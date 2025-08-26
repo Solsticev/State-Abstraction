@@ -59,11 +59,11 @@ def import_reward_wrappers(wrapper_path="submodel_wrappers.py"):
 if __name__ == "__main__":
 
 
-    config = {"wrapper_path": "temp_result.submodel_wrappers", 
-            "model_info_path": os.path.join("temp_result", "submodels.json"),
+    config = {"wrapper_path": "temp_result.submodel_wrappers1", 
+            "model_info_path": os.path.join("temp_result", "submodels1.json"),
             "save_model": True,
             "model_save_path": "RL_models1",
-            "total_timesteps": 100}
+            "total_timesteps": 1000000}
 
     with open(config["model_info_path"]) as f:
         model_info = json.load(f)
