@@ -61,7 +61,7 @@ def available_models(info, submodels):
 
 def choose_model(goal, info, last_model_call, model_list, rules, model_description):
 
-    llm_response = llm_utils.llm_chat(model="deepseek-chat", prompt=llm_prompt.compose_llm_agent_prompt(rules=rules, model_description=model_description, current_goal=goal, info=info, last_model_call=last_model_call), system_prompt="")
+    llm_response = llm_utils.llm_chat(model="qwen2.5:32b", prompt=llm_prompt.compose_llm_agent_prompt(rules=rules, model_description=model_description, current_goal=goal, info=info, last_model_call=last_model_call), system_prompt="")
 
     print(llm_response)
 
@@ -121,14 +121,14 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sub
         return 
 
     num_goals = len(goal_list)
-    index = 0
 
     print("Testing...")
-    print("current_goal: ", goal_list[index])
 
     total_rewards = []
 
     for episode in tqdm(range(num_episodes)):
+
+        index = 0
 
         obs = env.reset()
 
@@ -191,6 +191,7 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sub
                 elif mode == "lazy":
 
                     if is_finished(info, last_info, submodels):
+                        print("current_goal: ", goal_list[index])
 
                         model_description = create_model_description(available_models(info, submodels), submodels)
                         # print(model_description)
@@ -212,18 +213,18 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sub
 if __name__ == "__main__":
 
     config = {
-        "test_episodes": 1,
+        "test_episodes": 100,
         "recorder": False,
-        "recoder_res_path": "our_method_res",
+        "recoder_res_path": "our_method_qwen7B_res",
         "init_items": [],
         "init_num": [],
         "render": False,
-        "goal_list_path": os.path.join("temp_result", "goal_list.txt"),
+        "goal_list_path": os.path.join("temp_result", "goal_list1.txt"),
         "mode": "lazy",
         "stack_size": 1,
         "submodels_path": "RL_models",
-        "model_info_dict_path": os.path.join("temp_result", "submodels.json"),
-        "rules_path": os.path.join("temp_result", "rules.txt"),
+        "model_info_dict_path": os.path.join("temp_result", "submodels1.json"),
+        "rules_path": os.path.join("temp_result", "human_designed_rules.txt"),
     }
 
     env = gym.make("MyCrafter-v0")

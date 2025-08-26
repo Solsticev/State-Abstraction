@@ -1,0 +1,8 @@
+{
+    "model1": {"name": "wood", "description": "collect wood", "requirement": []},
+    "model2": {"name": "wood_pickaxe", "description": "make wood_pickaxe", "requirement": [["wood", 1]]},
+    "model3": {"name": "stone", "description": "collect stone", "requirement": [["wood_pickaxe", 1]]},
+    "model4": {"name": "stone_pickaxe", "description": "make stone_pickaxe", "requirement": [["wood", 1], ["stone", 1]]},
+    "model5": {"name": "coal", "description": "collect coal", "requirement": [["wood_pickaxe", 1]]},
+    "model6": {"name": "iron", "description": "collect iron", "requirement": [["stone_pickaxe", 1]]}
+}

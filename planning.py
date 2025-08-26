@@ -2,6 +2,7 @@ from utils import llm_prompt
 from utils import llm_utils
 import ast
 import os
+import argparse
 
 
 def plan(tasks_list, num_step, rules):
@@ -44,22 +45,54 @@ def plan_aux(tasks_list, goal_list, current_step, num_step, rules):
     return plan_aux(tasks_list, goal_list, current_step+1, num_step, rules)
 
 
+def check_valid(goal_list):
+    
+    valid_items = {"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword", "furnace", "table"}
+
+    try:
+        for goal in goal_list:
+            if goal not in valid_items:
+                return False
+    except Exception:
+        return False
+
+    return True
+
+
 if __name__ == "__main__":
 
-    config = {"rules_path": os.path.join("temp_result", "rules.txt"),
-              "tasks_list": ["collect an iron"],
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rules_path", type=str, default=os.path.join("temp_result", "rules.txt"))
+    parser.add_argument("--final_task", type=str, default="collect an iron")
+    parser.add_argument("--save_plan_path", type=str)
+    parser.add_argument("--save_goal_list_path", type=str)
+
+    args = parser.parse_args()
+
+    config = {"rules_path": args.rules_path,
+              "final_task":  args.final_task,
               "planning_steps": 3,
               "save_plan": True,
               "save_goal_list": True,
-              "save_plan_path": os.path.join("temp_result", "plan1.txt"),
-              "save_goal_list_path": os.path.join("temp_result", "goal_list1.txt")
+              "save_plan_path": args.save_plan_path,
+              "save_goal_list_path": args.save_goal_list_path,
               }
 
     rules = open(config["rules_path"], 'r').read()
-    tasks_list = config["tasks_list"]
+    final_task = config["final_task"]
+    tasks_list = [final_task]
     planning_steps = config["planning_steps"]
     
-    tasks_list, goal_list = plan(tasks_list, planning_steps, rules)
+    max_retries = 3
+    for i in range(max_retries):
+        tasks_list, goal_list = plan(tasks_list, planning_steps, rules)
+        is_valid = check_valid(goal_list)
+        if not is_valid and i == max_retries-1:
+            print("LLM output is invalid!")
+            assert False
+        elif is_valid:
+            break
+        print("found LLM ouput invalid, retrying...")
 
     # print(tasks_list)
     # print(goal_list)

@@ -1,0 +1,9 @@
+rule1: You can collect wood.
+rule2: You can collect stone if you have at least one wood_pickaxe in your inventory.
+rule3: You can collect coal if you have at least one wood_pickaxe in your inventory.
+rule4: You can collect iron if you have at least one stone_pickaxe in your inventory.
+rule5: You can collect water if you are adjacent to it.
+rule6: You can collect diamond if you have at least one iron_pickaxe in your inventory
+rule7: You can make wood_pickaxe if you have at least one wood in your inventory.
+rule8: You can make stone_pickaxe if you have at least one wood and one stone in your inventory.
+rule9: You can make iron_pickaxe if you have at least one wood, one coal and one iron in your inventory.
