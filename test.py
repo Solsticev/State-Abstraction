@@ -10,6 +10,7 @@ from utils import env_wrapper
 import os
 import numpy as np
 from tqdm import tqdm
+from temp_result import submodel_wrappers1
 
 
 def test(env, model, num_episodes, stack_size=2, render=True):
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     config = {
         "test_episodes": 100,
         "recorder": False,
-        "recorder_res_path": "base_model_res",
+        "recorder_res_path": "comparisons/res/RL_only_res",
         "init_items": ["wood_pickaxe"],
         "init_num": [1],
         "render": False,
@@ -85,9 +86,9 @@ if __name__ == "__main__":
             save_video = False,
             save_episode = False,
         )
-    env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=config["init_num"])
-    env = env_wrapper.MineStoneWrapper(env)
 
+    env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=config["init_num"])
+    env = env_wrapper.MineStoneWrapper2(env)
 
     model = PPO.load(config["model_path"])
     stack_size = config["stack_size"]

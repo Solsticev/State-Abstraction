@@ -223,7 +223,7 @@ class MineStoneWrapper(gym.Wrapper):
 
         obs, reward, done, info = self.env.step(action)
 
-        reward = 0
+        # reward = 0
 
         play_pos = info["player_pos"]
         if np.array_equal(play_pos, self.prev_pos):
@@ -242,11 +242,11 @@ class MineStoneWrapper(gym.Wrapper):
 
 class MineStoneWrapper2(gym.Wrapper):
 
-    def __init__(self, env, decay_steps=500000, obj_index=7):
+    def __init__(self, env, decay_steps=500000, obj_index=3):
         super().__init__(env)
         self.prev_stone = 0
         self.prev_pos = np.array([32, 32])
-        self.curren_step = 0
+        self.current_step = 0
         self.decay_steps = decay_steps
         self.find_stone = False
         self.target_obj = obj_index
@@ -259,18 +259,11 @@ class MineStoneWrapper2(gym.Wrapper):
 
     def step(self, action):
 
-        self.curren_step += 1
+        self.current_step += 1
 
         obs, reward, done, info = self.env.step(action)
 
-        # 权重衰减，开始训练时原始reward会多一点，鼓励agent探索，随着训练轮数增加，原始reward递减
-        if self.curren_step < self.decay_steps:
-            decay_factor = 1.0 - (self.curren_step / self.decay_steps)
-        else:
-            decay_factor = 0.0
-
-        reward *= decay_factor
-
+        reward = 0
         # 如果agent不动则给予小惩罚
         player_pos = info["player_pos"]
         if np.array_equal(player_pos, self.prev_pos):
@@ -296,7 +289,7 @@ class MineStoneWrapper2(gym.Wrapper):
         # 如果获得物体则给予大奖励
         num_stone = info["inventory"]["stone"]
         if num_stone > self.prev_stone:
-            reward += 10000
+            reward = 10000
             done = True
         self.prev_stone = num_stone
 
@@ -317,13 +310,11 @@ class WoodWrapper(gym.Wrapper):
 
         obs, reward, done, info = self.env.step(action)
 
-        reward = 0
-        # if info["inventory"]["health"] == 0:
-            # reward -= 1000
+        # reward = 0
 
         num_wood = info["inventory"]["wood"]
         if num_wood > self.prev_wood:
-            reward += 1000
+            reward = 10000
             done = True
 
         self.prev_wood = num_wood
@@ -360,6 +351,40 @@ class WoodPickaxeWrapper(gym.Wrapper):
         self.prev_wood_pickaxe = num_wood_pickaxe
 
         return obs, reward, done, info
+
+class WoodPickaxeWrapper2(gym.Wrapper):
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.prev_wood_pickaxe = 0
+        
+    
+    def reset(self, **kwargs):
+        self.prev_wood_pickaxe = 0
+        self.prev_pos = np.array([32, 32])
+        return self.env.reset()
+
+    def step(self, action):
+
+        obs, reward, done, info = self.env.step(action)
+
+        reward = 0
+
+        play_pos = info["player_pos"]
+        if np.array_equal(play_pos, self.prev_pos):
+            reward -= 0.03
+
+        self.prev_pos = play_pos
+
+        num_wood_pickaxe = info["inventory"]["wood_pickaxe"]
+        if num_wood_pickaxe > self.prev_wood_pickaxe:
+            reward += 1000
+            # done = True
+
+        self.prev_wood_pickaxe = num_wood_pickaxe
+
+        return obs, reward, done, info
+
 
 class StoneSwordWrapper(gym.Wrapper):
 

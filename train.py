@@ -8,32 +8,39 @@ from stable_baselines3 import PPO
 from gym.wrappers import FrameStack
 import numpy as np
 import os
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, StopTrainingOnRewardThreshold
 
 
-if __name__ == "__main__":
-
-    config = {
-        "total_timesteps": 1000000,
-        "save": True,
-        "save_dir": "./stone",
-        "init_items": ["wood_pickaxe"],
-        "init_num": [1],
-        "recorder": False,
-        "recorder_res_path": "SubTask-stone",
-    }
-
-    env = gym.make("MyCrafter-v0") 
-    if config["recorder"]:
+def make_env(config, mode):
+    env = gym.make("MyCrafter-v0")
+    env = env_wrapper.MineStoneWrapper2(env, decay_steps=0)
+    if mode == "train" and config["recorder"]:
         env = crafter.Recorder(
             env, config["recorder_res_path"],
             save_stats = True,
             save_video = False,
             save_episode = False,
         )
-
-    env = env_wrapper.MineStoneWrapper2(env)
     env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=config["init_num"])
+    return env
+
+
+if __name__ == "__main__":
+
+    config = {
+        "total_timesteps": 2000000,
+        "save": True,
+        "save_dir": "./stone",
+        "init_items": ["wood_pickaxe"],
+        "init_num": [1],
+        "recorder": False,
+        "recorder_res_path": "comparisons/res/stone",
+        "early_stop": False,
+        "stop_threshold": 9000,
+    }
+
+    train_env = make_env(config, mode="train")
+    eval_env = make_env(config, mode="eval")
 
     policy_kwargs = {
         "features_extractor_class": CustomResNet,
@@ -46,9 +53,10 @@ if __name__ == "__main__":
 
     model = CustomPPO(
         CustomACPolicy,
-        env,
+        train_env,
         policy_kwargs=policy_kwargs,
         learning_rate=3e-4,
+        # learning_rate=1e-4,
         n_steps=4096,
         batch_size=512,
         n_epochs=3,
@@ -64,9 +72,24 @@ if __name__ == "__main__":
 
     total_timesteps = config["total_timesteps"]
 
-    model.learn(total_timesteps=total_timesteps, progress_bar=True)
+    call_back_on_best = StopTrainingOnRewardThreshold(reward_threshold=config["stop_threshold"], verbose=1)
+
+    eval_callback = EvalCallback(
+        eval_env,
+        callback_on_new_best=call_back_on_best,
+        eval_freq=10000,
+        verbose=1,
+        n_eval_episodes=10,
+        deterministic=False,
+    )
+
+    if config["early_stop"]:
+        model.learn(total_timesteps=total_timesteps, progress_bar=True, callback=eval_callback)
+    else:
+        model.learn(total_timesteps=total_timesteps, progress_bar=True)
 
     if config["save"]:
         model.save(config["save_dir"])
 
-    env.close()
+    train_env.close()
+    eval_env.close()
