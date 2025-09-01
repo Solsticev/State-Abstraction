@@ -9,18 +9,27 @@ from gym.wrappers import FrameStack
 import numpy as np
 import os
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, StopTrainingOnRewardThreshold
+from temp_result import submodel_wrappers1
 
 
 def make_env(config, mode):
     env = gym.make("MyCrafter-v0")
-    env = env_wrapper.MineStoneWrapper2(env, decay_steps=0)
-    if mode == "train" and config["recorder"]:
-        env = crafter.Recorder(
-            env, config["recorder_res_path"],
-            save_stats = True,
-            save_video = False,
-            save_episode = False,
-        )
+    # env = env_wrapper.MineStoneWrapper2(env, decay_steps=0)
+    # env = env_wrapper.WoodPickaxeWrapper(env)
+    # env = submodel_wrappers1.stoneWrapper(env)
+    # env = env_wrapper.ActionWrapper(env, allowed_actions=[0,1,2,3,4,5])
+    if mode == "train":
+        env = submodel_wrappers1.stone_pickaxeWrapper(env, allowed_actions=range(17))
+        if config["recorder"]:
+            env = crafter.Recorder(
+                env, config["recorder_res_path"],
+                save_stats = True,
+                save_video = False,
+                save_episode = False,
+            )
+    else:
+        env = env_wrapper.WrapperTest(env)
+
     env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=config["init_num"])
     return env
 
@@ -28,15 +37,16 @@ def make_env(config, mode):
 if __name__ == "__main__":
 
     config = {
-        "total_timesteps": 2000000,
-        "save": True,
-        "save_dir": "./stone",
-        "init_items": ["wood_pickaxe"],
-        "init_num": [1],
+        "total_timesteps": 1900000,
+        "save": False,
+        "save_dir": "./RL_only_stone_pickaxe",
+        "init_items": [],
+        "init_num": [],
         "recorder": False,
-        "recorder_res_path": "comparisons/res/stone",
-        "early_stop": False,
+        "recorder_res_path": "comparisons/res/RL_only_stone_pickaxe_res",
+        "early_stop": True,
         "stop_threshold": 9000,
+        "log_path": "./log/RL_only_stone_pickaxe"
     }
 
     train_env = make_env(config, mode="train")
@@ -79,8 +89,9 @@ if __name__ == "__main__":
         callback_on_new_best=call_back_on_best,
         eval_freq=10000,
         verbose=1,
-        n_eval_episodes=10,
+        n_eval_episodes=20,
         deterministic=False,
+        log_path=config["log_path"]
     )
 
     if config["early_stop"]:

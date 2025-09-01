@@ -13,6 +13,20 @@ def face_at(obs):
     return ""
 
 
+class ActionWrapper(gym.ActionWrapper):
+
+    def __init__(self, env, allowed_actions):
+        super(ActionWrapper, self).__init__(env)
+        self.allowed_actions = allowed_actions
+        self.action_space = spaces.Discrete(len(allowed_actions))
+
+    def action(self, action):
+        return self.allowed_actions[action]
+
+    def reverse_action(self, action):
+        return self.allowed_actions.index(action)
+
+
 class LabelGeneratingWrapper(gym.Wrapper):
     """
     This wrapper calls an external function to get a label for each step
@@ -207,33 +221,25 @@ class DrinkWaterWrapper(gym.Wrapper):
 
         return obs, reward, done, info
 
-class MineStoneWrapper(gym.Wrapper):
+class stoneWrapperTest(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
         self.prev_stone = 0
-        self.prev_pos = np.array([32, 32])
     
     def reset(self, **kwargs):
         self.prev_stone = 0
-        self.prev_pos = np.array([32, 32])
         return self.env.reset()
 
     def step(self, action):
 
         obs, reward, done, info = self.env.step(action)
 
-        # reward = 0
-
-        play_pos = info["player_pos"]
-        if np.array_equal(play_pos, self.prev_pos):
-            reward -= 0.03
-
-        self.prev_pos = play_pos
+        reward = 0
 
         num_stone = info["inventory"]["stone"]
         if num_stone > self.prev_stone:
-            reward += 1000
+            reward += 1
             done = True
         self.prev_stone = num_stone
 
@@ -296,7 +302,7 @@ class MineStoneWrapper2(gym.Wrapper):
         return obs, reward, done, info
 
 
-class WoodWrapper(gym.Wrapper):
+class woodWrapperTest(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
@@ -310,22 +316,23 @@ class WoodWrapper(gym.Wrapper):
 
         obs, reward, done, info = self.env.step(action)
 
-        # reward = 0
+        reward = 0
 
         num_wood = info["inventory"]["wood"]
         if num_wood > self.prev_wood:
-            reward = 10000
+            reward = 1
             done = True
 
         self.prev_wood = num_wood
 
         return obs, reward, done, info
 
-class WoodPickaxeWrapper(gym.Wrapper):
+class wood_pickaxeWrapperTest(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
         self.prev_wood_pickaxe = 0
+        self.prev_pos = np.array([32, 32])
         
     
     def reset(self, **kwargs):
@@ -337,16 +344,12 @@ class WoodPickaxeWrapper(gym.Wrapper):
 
         obs, reward, done, info = self.env.step(action)
 
-        play_pos = info["player_pos"]
-        if np.array_equal(play_pos, self.prev_pos):
-            reward -= 0.03
-
-        self.prev_pos = play_pos
+        reward = 0
 
         num_wood_pickaxe = info["inventory"]["wood_pickaxe"]
         if num_wood_pickaxe > self.prev_wood_pickaxe:
-            reward += 1000
-            # done = True
+            reward += 1
+            done = True
 
         self.prev_wood_pickaxe = num_wood_pickaxe
 
@@ -386,38 +389,28 @@ class WoodPickaxeWrapper2(gym.Wrapper):
         return obs, reward, done, info
 
 
-class StoneSwordWrapper(gym.Wrapper):
+class stone_pickaxeWrapperTest(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
         self.prev_stone_pickaxe = 0
-        self.prev_stone_sword = 0
     
     def reset(self, **kwargs):
         self.prev_stone_pickaxe = 0
-        self.prev_stone_sword = 0
         return self.env.reset()
 
     def step(self, action):
 
         obs, reward, done, info = self.env.step(action)
 
-        # reward = 0
-        # if info["inventory"]["health"] == 0:
-        #     reward -= 1000
+        reward = 0
 
         num_stone_pickaxe = info["inventory"]["stone_pickaxe"]
-        num_stone_sword = info["inventory"]["stone_sword"]
-        if num_stone_pickaxe > self.prev_stone_pickaxe and num_stone_pickaxe == 1:
-            reward += 1000
-            # done = True
-        # if num_stone_sword > self.prev_stone_sword and num_stone_sword == 1:
-        #     reward += 1000
-        # if num_stone_pickaxe and num_stone_pickaxe:
-        #     done = True
+        if num_stone_pickaxe > self.prev_stone_pickaxe:
+            reward += 1
+            done = True
 
         self.prev_stone_pickaxe = num_stone_pickaxe
-        self.num_stone_sword = num_stone_sword
 
         return obs, reward, done, info
 
@@ -659,16 +652,45 @@ class MineIronWrapper2(gym.Wrapper):
         
         return obs, reward, done, info
 
+class WrapperTest(gym.Wrapper):
 
-def call_wrapper(env, wrapper_list, init_wrapper_params):
-
-    for wrapper in wrapper_list:
-        if wrapper == "MineStoneWrapper":
-            env = MineStoneWrapper(env)
-        if wrapper == "InitWrapper":
-            env = InitWrapper(env, init_wrapper_params[0], init_wrapper_params[1])
-
-    return env
-
+    def __init__(self, env):
+        super().__init__(env)
+        self.prev_stone_pickaxe = 0
+        self.prev_stone = 0
+        self.prev_wood = 0
+        self.prev_wood_pickaxe = 0
     
+    def reset(self, **kwargs):
+        self.prev_stone_pickaxe = 0
+        self.prev_stone = 0
+        self.prev_wood = 0
+        self.prev_wood_pickaxe = 0
+        return self.env.reset()
 
+    def step(self, action):
+
+        obs, reward, done, info = self.env.step(action)
+
+        reward = 0
+
+        num_stone_pickaxe = info["inventory"]["stone_pickaxe"]
+        num_stone = info["inventory"]["stone"]
+        num_wood = info["inventory"]["wood"]
+        num_wood_pickaxe = info["inventory"]["wood_pickaxe"]
+    
+        if num_stone_pickaxe > self.prev_stone_pickaxe and num_stone_pickaxe == 1:
+            reward += 1
+        if num_wood_pickaxe > self.prev_wood_pickaxe and num_wood_pickaxe == 1:
+            reward += 1
+        if num_stone > self.prev_stone and num_stone == 1:
+            reward += 1
+        if num_wood > self.prev_wood and num_wood == 1:
+            reward += 1
+
+        self.prev_stone_pickaxe = num_stone_pickaxe
+        self.prev_wood_pickaxe = num_wood_pickaxe
+        self.prev_wood = num_wood
+        self.prev_stone = num_stone
+
+        return obs, reward, done, info

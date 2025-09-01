@@ -8,6 +8,10 @@ from utils import env_wrapper
 import os
 from stable_baselines3 import PPO
 import importlib
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def train_model(env, save_path, config, total_timesteps=1000000):
@@ -41,17 +45,31 @@ def train_model(env, save_path, config, total_timesteps=1000000):
 
     total_timesteps = total_timesteps
 
-    model.learn(total_timesteps=total_timesteps, progress_bar=True)
+    call_back_on_best = StopTrainingOnRewardThreshold(reward_threshold=config["stop_threshold"], verbose=1)
+
+    eval_callback = EvalCallback(
+        env,
+        callback_on_new_best=call_back_on_best,
+        eval_freq=20000,
+        verbose=1,
+        n_eval_episodes=30,
+        deterministic=False,
+    )
+
+    if config["early_stop"]:
+        model.learn(total_timesteps=total_timesteps, progress_bar=True, callback=eval_callback)
+    else:
+        model.learn(total_timesteps=total_timesteps, progress_bar=True)
 
     if config["save_model"]:
         model.save(save_path)
-        print(f"model successfully saved at {save_path}")
+        print(f"model successfully saved at {save_path}!")
 
     env.close()
 
 
-def import_reward_wrappers(wrapper_path="submodel_wrappers.py"):
-    # wrappers = __import__(wrapper_path)
+def import_subtask_wrappers(wrapper_path="submodel_wrappers.py"):
+
     wrappers = importlib.import_module(wrapper_path)
     return wrappers
 
@@ -59,33 +77,41 @@ def import_reward_wrappers(wrapper_path="submodel_wrappers.py"):
 if __name__ == "__main__":
 
 
-    config = {"wrapper_path": "temp_result.submodel_wrappers1", 
-            "model_info_path": os.path.join("temp_result", "submodels1.json"),
-            "save_model": True,
-            "model_save_path": "RL_models1",
-            "total_timesteps": 1000000}
+    config = {
+        "wrapper_path": "temp_result.submodel_wrappers1", 
+        "model_info_path": os.path.join("temp_result", "submodels1.json"),
+        "save_model": True,
+        "model_save_path": "RL_models2",
+        "total_timesteps": 1000000,
+        "early_stop": True,
+        "stop_threshold": 90,
+        "action_shaping": False,
+    }
 
     with open(config["model_info_path"]) as f:
         model_info = json.load(f)
 
-    wrappers = import_reward_wrappers(config["wrapper_path"])
+    wrappers = import_subtask_wrappers(config["wrapper_path"])
 
     for i, model_dict in enumerate(model_info.values()):
 
         name = model_dict["name"]
 
-        print(f"learning sub model: {name} ({i + 1} / {len(model_info) + 1})...\n")
+        print(f"training sub model: {name} ({i + 1} / {len(model_info)})...\n")
 
-        wrapper_name = name + "Wrapper"
+        reward_wrapper_name = name + "Wrapper"
         requirements = model_dict["requirement"]
 
         env = gym.make("MyCrafter-v0")
 
         try:
-            wrapper = getattr(wrappers, wrapper_name)
-            env = wrapper(env)
+            wrapper = getattr(wrappers, reward_wrapper_name)
+            if config["action_shaping"] is False:
+                env = wrapper(env, allowed_actions=range(17))
+            else:
+                env = wrapper(env)
         except Exception as e:
-            print("ERROR! {} is not defined".format(wrapper_name))
+            print("ERROR! {} is not defined".format(reward_wrapper_name))
             assert False
 
         init_items = []
@@ -101,5 +127,8 @@ if __name__ == "__main__":
 
         if not os.path.exists(config["model_save_path"]):
             os.mkdir(config["model_save_path"])
+
+        print("initial items: {}".format(init_items))
+        print("initial counts: {}".format(init_num))
 
         train_model(env, config=config, save_path=save_path, total_timesteps=config["total_timesteps"])

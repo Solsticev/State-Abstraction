@@ -33,7 +33,7 @@ def compose_planning_prompt(rules):
 
 def compose_llm_agent_prompt(rules, model_description, current_goal, info, last_model_call=""):
 
-    LLM_AGENT_PROMPT = "You are playing an open world survival game. Below are some of the rules of the game.\n\n" + rules + "\n\nThe pre-trained RL models below are available:\n\n" + model_description + "\n\nYou can and only can use those models to achieve the following goal\n\nCuurent goal:" + current_goal + "Here is your observation:\n\n" + str(info['obs']) + "\n\n" + str(info['history']) + "\n\n Here is your achievements where 1 stand for what you have already reached. Make sure don't reach achievements repeatly unless nessesary. (e.g. Do not collect resources when already needed)\n\n" + str(info['achievements']) + "\n\nYour last model call is: " + last_model_call + "\n\nYour answer should strictly follow the template below and NOTHING ELSE:\n\n{'choice':'call TODO1', 'reason': 'TODO2'}\n\n 'TODO1' should be one of the models in the keys of `model_description` and TODO2 is your explanation. You should list the rules you used in your explanation"
+    LLM_AGENT_PROMPT = "You are playing an open world survival game. Below are some of the rules of the game.\n\n" + rules + "\n\nThe pre-trained RL models below are available:\n\n" + model_description + "\n\nYou can and only can use those models to achieve the following goal\n\nCuurent goal:" + current_goal + "Here is your observation:\n\n" + str(info['obs']) + "\n\n" + str(info['history']) + "\n\n Here is your achievements where 1 stand for what you have already reached. Make sure DO NOT collect additional resources if existing resources are sufficient to complete your current task even when you are facing to it)\n\n" + str(info['achievements']) + "\n\nYour last model call is: " + last_model_call + "\n\nYour answer should strictly follow the template below and NOTHING ELSE:\n\n{'choice':'call TODO1', 'reason': 'TODO2'}\n\n 'TODO1' should be one of the models in the keys of `model_description` and TODO2 is your explanation. You should list the rules you used in your explanation"
 
     return LLM_AGENT_PROMPT
 
@@ -181,3 +181,19 @@ Do **not** include any additional text outside of the specified format.
 
 """
     return SUB_MODEL_PROPOSE_PROMPT + "Here are the rules of the game: \n" + rules + "\n\nHere is the plan\n" + plan + "\n\nHere is the current goal: " + current_goal  
+
+
+def compose_action_prompt(rules, current_goal):
+    
+    ACTION_PROMPT = '''You are playing an open-world 2D survival game. Based on the game rules, the current subtask, and the available action space, you must filter out actions that are irrelevant to the current subtask.
+
+The action space is as follows:
+["Noop", "Move Left", "Move Right", "Move Up", "Move Down", "Do", "Sleep", "Place Stone", "Place Table", "Place Furnace", "Place Plant", "Make Wood Pickaxe", "Make Stone Pickaxe", "Make Iron Pickaxe", "Make Wood Sword", "Make Stone Sword", "Make Iron Sword"]
+
+You must return only a subset of the above action space, for example:
+["Noop", "Move Left", "Move Right", "Move Up", "Move Down", "Do", "Make Iron Pickaxe"]
+
+Do not output any additional information.
+
+    '''
+    return ACTION_PROMPT + "\n\nThe game rules are: \n\n" + rules + "\n\nThe current subtask is: \n\n" + current_goal

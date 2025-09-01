@@ -1,5 +1,7 @@
 import gym
 import numpy as np
+from gym import spaces
+
 
 def face_at(obs):
 
@@ -12,14 +14,13 @@ def face_at(obs):
     
 class woodWrapper(gym.Wrapper):
 
-    def __init__(self, env, target_obj=-1, decay_steps=500000):
+    def __init__(self, env, target_obj=-1, allowed_actions=[0, 1, 2, 3, 4, 5]):
         super().__init__(env)
         self.prev_count = 0
         self.prev_pos = np.array([32, 32])
         self.find_target = False
         self.target_obj = target_obj
-        self.decay_steps = decay_steps
-        self.current_step = 0
+        self.allowed_actions = allowed_actions
     
     def reset(self, **kwargs):
         self.prev_pos = np.array([32, 32])
@@ -29,60 +30,48 @@ class woodWrapper(gym.Wrapper):
 
     def step(self, action):
 
-        self.current_step += 1
-
         obs, reward, done, info = self.env.step(action)
-
-        if self.current_step < self.decay_steps:
-            decay_factor = 1.0 - (self.current_step / self.decay_steps)
-        else:
-            decay_factor = 0.0
-
-        reward *= decay_factor
+        
+        if action not in self.allowed_actions:
+            reward -= 10
 
         player_pos = info["player_pos"]
         if np.array_equal(player_pos, self.prev_pos):
-            reward -= 0.03
+            reward -= 0.001
 
         left_index = max(0, player_pos[0] - 4)
         right_index = min(64, player_pos[0] + 4)
         up_index = max(0, player_pos[1] - 3)
         down_index = min(64, player_pos[1] + 3)
 
-        if not self.find_target:
-
-            for i in range(left_index, right_index, 1):
+        for i in range(left_index, right_index, 1):
+            if not self.find_target:
                 for j in range(up_index, down_index, 1):
                     if (info['semantic'][i][j] == self.target_obj):
-                        reward += 100
+                        reward += 5
                         self.find_target = True
                         break
 
         self.prev_pos = player_pos
-        try:
-            num_item = info["inventory"]["wood"]
-            if num_item > self.prev_count:
-                reward += 10000
-                done = True
-                self.prev_count = num_item
-        except KeyError as e:
-            if face_at(info["obs"]) == "wood":
-                reward += 10000
-                done = True
+
+        num_item = info["inventory"]["wood"]
+        if num_item > self.prev_count:
+            reward += 100
+            done = True
+        self.prev_count = num_item
 
         return obs, reward, done, info
 
 
 class wood_pickaxeWrapper(gym.Wrapper):
 
-    def __init__(self, env, target_obj=-1, decay_steps=500000):
+    def __init__(self, env, target_obj=-1, allowed_actions=[0, 1, 2, 3, 4, 5, 8, 11]):
         super().__init__(env)
         self.prev_count = 0
         self.prev_pos = np.array([32, 32])
         self.find_target = False
         self.target_obj = target_obj
-        self.decay_steps = decay_steps
-        self.current_step = 0
+        self.allowed_actions = allowed_actions
     
     def reset(self, **kwargs):
         self.prev_pos = np.array([32, 32])
@@ -92,60 +81,48 @@ class wood_pickaxeWrapper(gym.Wrapper):
 
     def step(self, action):
 
-        self.current_step += 1
-
         obs, reward, done, info = self.env.step(action)
-
-        if self.current_step < self.decay_steps:
-            decay_factor = 1.0 - (self.current_step / self.decay_steps)
-        else:
-            decay_factor = 0.0
-
-        reward *= decay_factor
+        
+        if action not in self.allowed_actions:
+            reward -= 10
 
         player_pos = info["player_pos"]
         if np.array_equal(player_pos, self.prev_pos):
-            reward -= 0.03
+            reward -= 0.001
 
         left_index = max(0, player_pos[0] - 4)
         right_index = min(64, player_pos[0] + 4)
         up_index = max(0, player_pos[1] - 3)
         down_index = min(64, player_pos[1] + 3)
 
-        if not self.find_target:
-
-            for i in range(left_index, right_index, 1):
+        for i in range(left_index, right_index, 1):
+            if not self.find_target:
                 for j in range(up_index, down_index, 1):
                     if (info['semantic'][i][j] == self.target_obj):
-                        reward += 100
+                        reward += 5
                         self.find_target = True
                         break
 
         self.prev_pos = player_pos
-        try:
-            num_item = info["inventory"]["wood_pickaxe"]
-            if num_item > self.prev_count:
-                reward += 10000
-                done = True
-                self.prev_count = num_item
-        except KeyError as e:
-            if face_at(info["obs"]) == "wood_pickaxe":
-                reward += 10000
-                done = True
+
+        num_item = info["inventory"]["wood_pickaxe"]
+        if num_item > self.prev_count:
+            reward += 100
+            done = True
+        self.prev_count = num_item
 
         return obs, reward, done, info
 
 
 class stoneWrapper(gym.Wrapper):
 
-    def __init__(self, env, target_obj=3, decay_steps=500000):
+    def __init__(self, env, target_obj=3, allowed_actions=[0, 1, 2, 3, 4, 5, 11, 8]):
         super().__init__(env)
         self.prev_count = 0
         self.prev_pos = np.array([32, 32])
         self.find_target = False
         self.target_obj = target_obj
-        self.decay_steps = decay_steps
-        self.current_step = 0
+        self.allowed_actions = allowed_actions
     
     def reset(self, **kwargs):
         self.prev_pos = np.array([32, 32])
@@ -155,60 +132,48 @@ class stoneWrapper(gym.Wrapper):
 
     def step(self, action):
 
-        self.current_step += 1
-
         obs, reward, done, info = self.env.step(action)
-
-        if self.current_step < self.decay_steps:
-            decay_factor = 1.0 - (self.current_step / self.decay_steps)
-        else:
-            decay_factor = 0.0
-
-        reward *= decay_factor
+        
+        if action not in self.allowed_actions:
+            reward -= 10
 
         player_pos = info["player_pos"]
         if np.array_equal(player_pos, self.prev_pos):
-            reward -= 0.03
+            reward -= 0.001
 
         left_index = max(0, player_pos[0] - 4)
         right_index = min(64, player_pos[0] + 4)
         up_index = max(0, player_pos[1] - 3)
         down_index = min(64, player_pos[1] + 3)
 
-        if not self.find_target:
-
-            for i in range(left_index, right_index, 1):
+        for i in range(left_index, right_index, 1):
+            if not self.find_target:
                 for j in range(up_index, down_index, 1):
                     if (info['semantic'][i][j] == self.target_obj):
-                        reward += 100
+                        reward += 5
                         self.find_target = True
                         break
 
         self.prev_pos = player_pos
-        try:
-            num_item = info["inventory"]["stone"]
-            if num_item > self.prev_count:
-                reward += 10000
-                done = True
-                self.prev_count = num_item
-        except KeyError as e:
-            if face_at(info["obs"]) == "stone":
-                reward += 10000
-                done = True
+
+        num_item = info["inventory"]["stone"]
+        if num_item > self.prev_count:
+            reward += 100
+            done = True
+        self.prev_count = num_item
 
         return obs, reward, done, info
 
 
 class stone_pickaxeWrapper(gym.Wrapper):
 
-    def __init__(self, env, target_obj=-1, decay_steps=500000):
+    def __init__(self, env, target_obj=-1, allowed_actions=[0, 1, 2, 3, 4, 5, 8, 11, 12]):
         super().__init__(env)
         self.prev_count = 0
         self.prev_pos = np.array([32, 32])
         self.find_target = False
         self.target_obj = target_obj
-        self.decay_steps = decay_steps
-        self.current_step = 0
+        self.allowed_actions = allowed_actions
     
     def reset(self, **kwargs):
         self.prev_pos = np.array([32, 32])
@@ -218,60 +183,52 @@ class stone_pickaxeWrapper(gym.Wrapper):
 
     def step(self, action):
 
-        self.current_step += 1
-
         obs, reward, done, info = self.env.step(action)
-
-        if self.current_step < self.decay_steps:
-            decay_factor = 1.0 - (self.current_step / self.decay_steps)
-        else:
-            decay_factor = 0.0
-
-        reward *= decay_factor
+        
+        if action not in self.allowed_actions:
+            reward -= 10
 
         player_pos = info["player_pos"]
         if np.array_equal(player_pos, self.prev_pos):
-            reward -= 0.03
+            reward -= 0.001
 
         left_index = max(0, player_pos[0] - 4)
         right_index = min(64, player_pos[0] + 4)
         up_index = max(0, player_pos[1] - 3)
         down_index = min(64, player_pos[1] + 3)
 
-        if not self.find_target:
-
-            for i in range(left_index, right_index, 1):
+        for i in range(left_index, right_index, 1):
+            if not self.find_target:
                 for j in range(up_index, down_index, 1):
                     if (info['semantic'][i][j] == self.target_obj):
-                        reward += 100
+                        reward += 5
                         self.find_target = True
                         break
 
         self.prev_pos = player_pos
-        try:
-            num_item = info["inventory"]["stone_pickaxe"]
-            if num_item > self.prev_count:
-                reward += 10000
-                done = True
-                self.prev_count = num_item
-        except KeyError as e:
-            if face_at(info["obs"]) == "stone_pickaxe":
-                reward += 10000
-                done = True
+
+        num_item = info["inventory"]["stone_pickaxe"]
+        if num_item > self.prev_count:
+            reward += 100
+            done = True
+
+        self.prev_count = num_item
+
+        if done:
+            print(reward)
 
         return obs, reward, done, info
 
 
 class ironWrapper(gym.Wrapper):
 
-    def __init__(self, env, target_obj=9, decay_steps=500000):
+    def __init__(self, env, target_obj=9, allowed_actions=[0, 1, 2, 3, 4, 5]):
         super().__init__(env)
         self.prev_count = 0
         self.prev_pos = np.array([32, 32])
         self.find_target = False
         self.target_obj = target_obj
-        self.decay_steps = decay_steps
-        self.current_step = 0
+        self.allowed_actions = allowed_actions
     
     def reset(self, **kwargs):
         self.prev_pos = np.array([32, 32])
@@ -281,46 +238,35 @@ class ironWrapper(gym.Wrapper):
 
     def step(self, action):
 
-        self.current_step += 1
-
         obs, reward, done, info = self.env.step(action)
-
-        if self.current_step < self.decay_steps:
-            decay_factor = 1.0 - (self.current_step / self.decay_steps)
-        else:
-            decay_factor = 0.0
-
-        reward *= decay_factor
+        
+        if action not in self.allowed_actions:
+            reward -= 10
 
         player_pos = info["player_pos"]
         if np.array_equal(player_pos, self.prev_pos):
-            reward -= 0.03
+            reward -= 0.001
 
         left_index = max(0, player_pos[0] - 4)
         right_index = min(64, player_pos[0] + 4)
         up_index = max(0, player_pos[1] - 3)
         down_index = min(64, player_pos[1] + 3)
 
-        if not self.find_target:
-
-            for i in range(left_index, right_index, 1):
+        for i in range(left_index, right_index, 1):
+            if not self.find_target:
                 for j in range(up_index, down_index, 1):
                     if (info['semantic'][i][j] == self.target_obj):
-                        reward += 100
+                        reward += 5
                         self.find_target = True
                         break
 
         self.prev_pos = player_pos
-        try:
-            num_item = info["inventory"]["iron"]
-            if num_item > self.prev_count:
-                reward += 10000
-                done = True
-                self.prev_count = num_item
-        except KeyError as e:
-            if face_at(info["obs"]) == "iron":
-                reward += 10000
-                done = True
+
+        num_item = info["inventory"]["iron"]
+        if num_item > self.prev_count:
+            reward += 100
+            done = True
+        self.prev_count = num_item
 
         return obs, reward, done, info
 

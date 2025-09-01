@@ -1,4 +1,4 @@
-# from ollama import chat
+from ollama import chat
 from openai import OpenAI
 import os
 
@@ -27,15 +27,16 @@ def llm_chat(prompt, system_prompt = "", model="deepseek-chat"):
             raise ValueError("No DEEPSEEK_API_KEY is defined")
 
         client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+        # response = client.chat.completions.create(model = model, messages = messages, stream = False, seed=100)
         response = client.chat.completions.create(model = model, messages = messages, stream = False)
         text = response.choices[0].message.content
 
     else:
 
-        assert False
+        # assert False
 
-        # response = chat(model=model, messages=messages)
-        # text = response["message"]["content"]
+        response = chat(model=model, messages=messages)
+        text = response["message"]["content"]
 
     return text
 

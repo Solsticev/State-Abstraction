@@ -9,15 +9,14 @@ from ollama import ChatResponse
 from crafter import crafter
 
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--llm_name', type=str, default='qwen2.5:7b', help='Name of the LLM')
+parser.add_argument('--llm_name', type=str, default='qwen2.5:32b', help='Name of the LLM')
 parser.add_argument('--env_names', type=str, default=None, help='Comma separated list of environments to run')
 
 args = parser.parse_args()
 
 
-LLM_name = "qwen2.5:7b"
+LLM_name = "qwen2.5:32b"
 
 # Replace with your own LLM API.
 # Note: query_model takes two arguments: 1) message in openai chat completion form (list of dictionaries), 
@@ -63,7 +62,7 @@ questions=[
     ]
 
 config = {"recorder": True,
-          "recorder_res_path": "LLM_only_res",
+          "recorder_res_path": "comparisons/res/LLM_only_qwen32B_res",
           "num_iter": 10}
 
 

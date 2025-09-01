@@ -5,6 +5,9 @@ import os
 import argparse
 
 
+VALID_ITEMS = {"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword"}
+
+
 def plan(tasks_list, num_step, rules):
 
     print("planning...")
@@ -27,31 +30,32 @@ def plan_aux(tasks_list, goal_list, current_step, num_step, rules):
         PLANNING_PROMPT = llm_prompt.compose_planning_prompt(rules)
 
         response = llm_utils.llm_chat(prompt="Current goal: " + subgoal, system_prompt=PLANNING_PROMPT, model="deepseek-chat")
-        subgoals_list = []
         try: 
             llm_subgoals_list = ast.literal_eval(response)
             for new_subgoal in llm_subgoals_list:
                 response = llm_utils.llm_chat(prompt=new_subgoal,system_prompt=llm_prompt.TRANS_PROMPT, model="deepseek-chat")
-                if "None" not in response and response not in goal_list:
+                if response in VALID_ITEMS and response not in goal_list:
                     tasks_list.append(new_subgoal)
                     goal_list.append(response)
 
-        except Exception as e:
+        except Exception:
             pass
 
-    # print(tasks_list)
-    # print(goal_list)
+    print(tasks_list)
+    print(goal_list)
 
     return plan_aux(tasks_list, goal_list, current_step+1, num_step, rules)
 
 
-def check_valid(goal_list):
+def check_valid(goal_list, tasks_list):
     
-    valid_items = {"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword", "furnace", "table"}
+    VALID_ITEMS = {"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword"}
 
     try:
+        if len(goal_list) != len(tasks_list):
+            return False
         for goal in goal_list:
-            if goal not in valid_items:
+            if goal not in VALID_ITEMS:
                 return False
     except Exception:
         return False
@@ -62,7 +66,7 @@ def check_valid(goal_list):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rules_path", type=str, default=os.path.join("temp_result", "rules.txt"))
+    parser.add_argument("--rules_path", type=str, default=os.path.join("temp_result", "human_designed_rules.txt"))
     parser.add_argument("--final_task", type=str, default="collect an iron")
     parser.add_argument("--save_plan_path", type=str)
     parser.add_argument("--save_goal_list_path", type=str)
@@ -71,7 +75,7 @@ if __name__ == "__main__":
 
     config = {"rules_path": args.rules_path,
               "final_task":  args.final_task,
-              "planning_steps": 3,
+              "planning_steps": 2,
               "save_plan": True,
               "save_goal_list": True,
               "save_plan_path": args.save_plan_path,
@@ -86,7 +90,7 @@ if __name__ == "__main__":
     max_retries = 3
     for i in range(max_retries):
         tasks_list, goal_list = plan(tasks_list, planning_steps, rules)
-        is_valid = check_valid(goal_list)
+        is_valid = check_valid(goal_list, tasks_list)
         if not is_valid and i == max_retries-1:
             print("LLM output is invalid!")
             assert False

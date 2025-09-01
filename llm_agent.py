@@ -61,7 +61,7 @@ def available_models(info, submodels):
 
 def choose_model(goal, info, last_model_call, model_list, rules, model_description):
 
-    llm_response = llm_utils.llm_chat(model="qwen2.5:32b", prompt=llm_prompt.compose_llm_agent_prompt(rules=rules, model_description=model_description, current_goal=goal, info=info, last_model_call=last_model_call), system_prompt="")
+    llm_response = llm_utils.llm_chat(model="deepseek-chat", prompt=llm_prompt.compose_llm_agent_prompt(rules=rules, model_description=model_description, current_goal=goal, info=info, last_model_call=last_model_call), system_prompt="")
 
     print(llm_response)
 
@@ -114,7 +114,7 @@ def not_moved(prev_locations):
     return True
 
 
-def test(env, model_list, num_episodes, rules, model_description, goal_list, submodels, stack_size=1, mode="usual", last_model_call="", render=True):
+def test(env, model_list, num_episodes, rules, model_description, goal_list, plan_list, submodels, stack_size=1, last_model_call="", render=True):
 
     if goal_list == []:
         print("Please make sure there is at least one goal in goal_list")
@@ -143,8 +143,8 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sub
         episode_reward = 0
 
         frames = [obs] * stack_size 
-        model = model_list["model1"]
-        model_name = "model1"
+        model = model_list["model0"]
+        model_name = "model0"
         last_model_call = ""
         last_info = ""
         prev_locations = [np.array([0, 0])] * 5 + [np.array([1, 1])] * 5
@@ -155,9 +155,8 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sub
 
             if not_moved(prev_locations):
                 action = np.random.choice([1, 2, 3, 4])
-
             else:
-                action, _ = model.predict(np.concatenate(frames, axis=-1), deterministic=True)
+                action, _ = model.predict(np.concatenate(frames, axis=-1), deterministic=False)
 
             frames.pop(0)
             frames.append(obs)
@@ -183,21 +182,14 @@ def test(env, model_list, num_episodes, rules, model_description, goal_list, sub
 
             else:
 
-                if mode == "usual":
+                if is_finished(info, last_info, submodels):
+                    print("current_goal: ", goal_list[index])
 
-                    model, model_name = choose_model(goal_list[index], info, last_model_call, model_list, rules, model_description)
+                    model_description = create_model_description(available_models(info, submodels), submodels)
+                    # print(model_description)
+
+                    model, model_name = choose_model(plan_list[index], info, last_model_call, model_list, rules, model_description)
                     last_model_call = model_name
-
-                elif mode == "lazy":
-
-                    if is_finished(info, last_info, submodels):
-                        print("current_goal: ", goal_list[index])
-
-                        model_description = create_model_description(available_models(info, submodels), submodels)
-                        # print(model_description)
-
-                        model, model_name = choose_model(goal_list[index], info, last_model_call, model_list, rules, model_description)
-                        last_model_call = model_name
 
             last_info = info
             episode_reward += reward
@@ -214,15 +206,15 @@ if __name__ == "__main__":
 
     config = {
         "test_episodes": 100,
-        "recorder": False,
-        "recoder_res_path": "our_method_qwen7B_res",
+        "recorder": True,
+        "recoder_res_path": "comparisons/res/our_method_with_wo_action_shaping_deepseek_res",
         "init_items": [],
         "init_num": [],
         "render": False,
         "goal_list_path": os.path.join("temp_result", "goal_list1.txt"),
-        "mode": "lazy",
+        "plan_path": os.path.join("temp_result", "plan1.txt"),
         "stack_size": 1,
-        "submodels_path": "RL_models",
+        "submodels_path": "RL_models2",
         "model_info_dict_path": os.path.join("temp_result", "submodels1.json"),
         "rules_path": os.path.join("temp_result", "human_designed_rules.txt"),
     }
@@ -244,17 +236,15 @@ if __name__ == "__main__":
     model_description = str(submodels)
     rules = open(config["rules_path"], 'r').read()
 
-    model_list = {} 
-    base_model = PPO.load(os.path.join("RL_models", "original_agent"))
+    model_list = {}
+    base_model = PPO.load(os.path.join("RL_models1", "wood"))
     model_list["model0"] = base_model
     for model_name, submodel in submodels.items():
         model = PPO.load(os.path.join(config["submodels_path"], submodel["name"]))
         model_list[model_name] = model
-    # print(model_list)
 
 test_episodes = config["test_episodes"]
 render = config["render"]
-mode = config["mode"] 
 stack_size = config["stack_size"]
 
 goal_list_path = config["goal_list_path"]
@@ -262,8 +252,13 @@ with open(goal_list_path) as f:
     goal_list_string = f.read()
 goal_list = ast.literal_eval(goal_list_string) 
 
+plan_path = config["plan_path"]
+with open(plan_path) as f:
+    plan_string = f.read()
+plan_list = ast.literal_eval(plan_string)
 
-total_rewards = test(env, model_list, test_episodes, rules=rules, submodels=submodels, model_description=model_description, goal_list=goal_list, render=render, last_model_call="", mode=mode, stack_size=stack_size)
+
+total_rewards = test(env, model_list, test_episodes, rules=rules, submodels=submodels, model_description=model_description, goal_list=goal_list, plan_list=plan_list, render=render, last_model_call="", stack_size=stack_size)
 
 average_reward = sum(total_rewards) / test_episodes
 print(f"Average reward over {test_episodes} episodes: {average_reward}")

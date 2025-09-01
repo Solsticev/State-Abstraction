@@ -70,11 +70,11 @@ if __name__ == "__main__":
         "test_episodes": 100,
         "recorder": False,
         "recorder_res_path": "comparisons/res/RL_only_res",
-        "init_items": ["wood_pickaxe"],
-        "init_num": [1],
+        "init_items": [],
+        "init_num": [],
         "render": False,
         "stack_size": 1,
-        "model_path": "stone"
+        "model_path": "RL_only_stone_pickaxe"
     }
 
 
@@ -88,7 +88,8 @@ if __name__ == "__main__":
         )
 
     env = env_wrapper.InitWrapper(env, init_items=config["init_items"], init_num=config["init_num"])
-    env = env_wrapper.MineStoneWrapper2(env)
+    env = env_wrapper.StoneSwordWrapper(env)
+    # env = submodel_wrappers1.stone_pickaxeWrapper(env)
 
     model = PPO.load(config["model_path"])
     stack_size = config["stack_size"]

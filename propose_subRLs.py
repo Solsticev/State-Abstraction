@@ -8,18 +8,19 @@ import argparse
 
 OBJ_INDEX = {"water": 1, "grass": 2, "stone": 3, "path": 4, "sand": 5, "tree": 6, "lava": 7, "coal": 8, "iron": 9, "diamond": 10, "table": 11, "furnace": 12}
 
+ACTION_TABLE = ["Noop", "Move Left", "Move Right", "Move Up", "Move Down", "Do", "Sleep", "Place Stone", "Place Table", "Place Furnace", "Place Plant", "Make Wood Pickaxe", "Make Stone Pickaxe", "Make Iron Pickaxe", "Make Wood Sword", "Make Stone Sword", "Make Iron Sword"]
 
-wrapper_template = """
+
+reward_wrapper_template = """
 class {}Wrapper(gym.Wrapper):
 
-    def __init__(self, env, target_obj={}, decay_steps=500000):
+    def __init__(self, env, target_obj={}, allowed_actions={}):
         super().__init__(env)
         self.prev_count = 0
         self.prev_pos = np.array([32, 32])
         self.find_target = False
         self.target_obj = target_obj
-        self.decay_steps = decay_steps
-        self.current_step = 0
+        self.allowed_actions = allowed_actions
     
     def reset(self, **kwargs):
         self.prev_pos = np.array([32, 32])
@@ -29,63 +30,52 @@ class {}Wrapper(gym.Wrapper):
 
     def step(self, action):
 
-        self.current_step += 1
-
         obs, reward, done, info = self.env.step(action)
-
-        if self.current_step < self.decay_steps:
-            decay_factor = 1.0 - (self.current_step / self.decay_steps)
-        else:
-            decay_factor = 0.0
-
-        reward *= decay_factor
+        
+        if action not in self.allowed_actions:
+            reward -= 10
 
         player_pos = info["player_pos"]
         if np.array_equal(player_pos, self.prev_pos):
-            reward -= 0.03
+            reward -= 0.001
 
         left_index = max(0, player_pos[0] - 4)
         right_index = min(64, player_pos[0] + 4)
         up_index = max(0, player_pos[1] - 3)
         down_index = min(64, player_pos[1] + 3)
 
-        if not self.find_target:
-
-            for i in range(left_index, right_index, 1):
+        for i in range(left_index, right_index, 1):
+            if not self.find_target:
                 for j in range(up_index, down_index, 1):
                     if (info['semantic'][i][j] == self.target_obj):
-                        reward += 100
+                        reward += 5
                         self.find_target = True
                         break
 
         self.prev_pos = player_pos
-        try:
-            num_item = info["inventory"]["{}"]
-            if num_item > self.prev_count:
-                reward += 10000
-                done = True
-                self.prev_count = num_item
-        except KeyError as e:
-            if face_at(info["obs"]) == "{}":
-                reward += 10000
-                done = True
+
+        num_item = info["inventory"]["{}"]
+        if num_item > self.prev_count:
+            reward += 100
+            done = True
+        self.prev_count = num_item
 
         return obs, reward, done, info
 
 """
 
 
-def define_training_wrapper(obj_name):
+def define_training_wrapper(obj_name, allowed_actions):
 
     if obj_name in OBJ_INDEX:
-        return wrapper_template.format(obj_name, OBJ_INDEX[obj_name], obj_name, obj_name)
+        return reward_wrapper_template.format(obj_name, OBJ_INDEX[obj_name], allowed_actions, obj_name, obj_name)
     else:
-        return wrapper_template.format(obj_name, -1, obj_name, obj_name)
+        return reward_wrapper_template.format(obj_name, -1, allowed_actions, obj_name, obj_name)
 
 
 def check_valid(model_info_dict_str):
 
-    valid_items = {"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword", "furnace", "table"}
+    valid_items = {"health", "food", "drink", "energy", "sapling", "wood", "stone", "coal", "iron", "diamond", "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "wood_sword", "stone_sword", "iron_sword"}
 
     try:
         model_info_dict = json.loads(model_info_dict_str)
@@ -107,7 +97,7 @@ def check_valid(model_info_dict_str):
                 if req[0] not in valid_items or len(req) != 2:
                     return False
 
-    except Exception as e:
+    except Exception:
         return False
     
     return True
@@ -138,7 +128,7 @@ if __name__ == "__main__":
     rules = open(config["rules_path"], 'r').read()
     plan = open(config["plan_path"], 'r').read()
     
-    max_retries = 10
+    max_retries = 3 
     for i in range(max_retries):
 
         model_info_dict = llm_utils.llm_chat(prompt = llm_prompt.compose_submodel_prompt(rules, plan, config["goal"]), system_prompt="", model="deepseek-chat")
@@ -160,6 +150,8 @@ if __name__ == "__main__":
 
     lines = '''import gym
 import numpy as np
+from gym import spaces
+
 
 def face_at(obs):
 
@@ -173,13 +165,33 @@ def face_at(obs):
 
     if config["save_wrappers"]:
 
+        plan = ast.literal_eval(plan)
+
+        print("saving subtask wrappers...")
+
         with open(config["save_wrappers_path"], 'w') as f:
             f.write(lines)
-        print("reward shaping wrappers successful saved at ", config["save_wrappers_path"])
 
         model_info = json.loads(model_info_dict)
 
-        for obj_info in model_info.values():
+        for i, obj_info in enumerate(model_info.values()):
+
             obj = obj_info["name"] 
+            subtask = plan[i]
+
             with open(config["save_wrappers_path"], 'a') as f:
-                f.write(define_training_wrapper(obj))
+
+                for j in range(max_retries):
+                    allowed_actions = llm_utils.llm_chat(prompt=llm_prompt.compose_action_prompt(rules, subtask), system_prompt="", model="deepseek-chat")
+                    # print(allowed_actions)
+                    try:
+                        allowed_actions = ast.literal_eval(allowed_actions)
+                        allowed_actions = [ACTION_TABLE.index(item) for item in allowed_actions]
+                        f.write(define_training_wrapper(obj, allowed_actions))
+                        break
+                    except Exception:
+                        if j == max_retries-1:
+                            assert False
+                        print("invalid actions format, retrying...")
+
+        print("subtask wrappers successful saved at ", config["save_wrappers_path"])
