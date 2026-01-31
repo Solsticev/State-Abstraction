@@ -108,3 +108,23 @@ pip install -r requirements.txt
 echo $DEEPSEEK_API_KEY
 ```
 如果输出为您的api_key则代表环境变量成功设置
+
+### run in prolog
+
+本项目在`prolog_run.pl`里实现了`get_stone_pickaxe`。执行前确保环境中存在*Scryer Prolog* (https://github.com/mthom/scryer-prolog)
+
+#### 用法
+
+1. 使用python创建一个socket服务器
+```bash
+python scpl_server.py
+```
+2. 打开*另一个*终端
+```prolog
+scryer-prolog prolog_run.pl
+```
+3. 执行查询
+```prolog
+?- run("MyCrafter-v0").
+```
+如果返回结果包含true则说明agent完成了任务，否则没有完成。
