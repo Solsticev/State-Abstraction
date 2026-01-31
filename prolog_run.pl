@@ -10,7 +10,7 @@ init_env(Env) :-
 collect_wood(Env) :- 
     to_py_string([Env], [Env_py]),
     call_py_func('prolog_call_tools.call_wood', [Env_py], Res),
-    Res = "false".
+    Res = "true".
 
 run(Env_name) :-
     py_using("prolog_call_tools"),

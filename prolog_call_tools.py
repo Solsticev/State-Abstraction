@@ -53,5 +53,5 @@ def call_wood_pickaxe():
     
     return "false"
 
-init_env("MyCrafter-v0")
-print(call_wood("MyCrafter-v0"))
+# init_env("MyCrafter-v0")
+# print(call_wood("MyCrafter-v0"))
