@@ -37,7 +37,7 @@ def call_wood(Env):
 
     return "false"
 
-def call_wood_pickaxe():
+def call_wood_pickaxe(Env):
 
     global env
     global config
@@ -45,11 +45,52 @@ def call_wood_pickaxe():
 
     wood_pickaxe_model = PPO.load(os.path.join(config["submodels_path"], "wood_pickaxe"))
 
-    action, _ = wood_pickaxe_model.predict(obs, deterministic=False)
-    obs, reward, done, info = env.step(action)
+    done = False
+    while not done:
 
-    if info["inventory"]["wood_pickaxe"] == 1:
-        return "true"
+        action, _ = wood_pickaxe_model.predict(obs, deterministic=False)
+        obs, reward, done, info = env.step(action)
+
+        if info["inventory"]["wood_pickaxe"] == 1:
+            return "true"
+    
+    return "false"
+
+def call_stone(Env):
+
+    global env
+    global config
+    global obs
+
+    wood_pickaxe_model = PPO.load(os.path.join(config["submodels_path"], "stone"))
+
+    done = False
+    while not done:
+
+        action, _ = wood_pickaxe_model.predict(obs, deterministic=False)
+        obs, reward, done, info = env.step(action)
+
+        if info["inventory"]["stone"] == 1:
+            return "true"
+    
+    return "false"
+
+def call_stone_pickaxe(Env):
+
+    global env
+    global config
+    global obs
+
+    wood_pickaxe_model = PPO.load(os.path.join(config["submodels_path"], "stone_pickaxe"))
+
+    done = False
+    while not done:
+
+        action, _ = wood_pickaxe_model.predict(obs, deterministic=False)
+        obs, reward, done, info = env.step(action)
+
+        if info["inventory"]["stone_pickaxe"] == 1:
+            return "true"
     
     return "false"
 
